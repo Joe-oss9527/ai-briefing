@@ -127,17 +127,25 @@ def get_logger(name: str = None) -> logging.Logger:
 # ---------- Secret redaction ----------
 
 def redact_secrets(s: str) -> str:
+    """Redact sensitive information from strings for safe logging."""
     if not s:
         return s
-    env_keys = ["GEMINI_API_KEY", "TELEGRAM_BOT_TOKEN", "GITHUB_TOKEN", "TWITTER_AUTH_TOKEN",
-                "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET"]
+    
+    # Simple approach: redact known env vars
+    env_keys = ["GEMINI_API_KEY", "TELEGRAM_BOT_TOKEN", "GITHUB_TOKEN", 
+                "REDDIT_CLIENT_SECRET", "TWITTER_PASSWORD"]
+    
     redacted = s
     for k in env_keys:
         v = os.getenv(k)
-        if v:
+        if v and len(v) > 3:
             redacted = redacted.replace(v, "***")
+    
+    # Simple regex patterns for common cases
     import re
     redacted = re.sub(r"x-access-token:[^@]+@", "x-access-token:***@", redacted)
+    redacted = re.sub(r"ghp_[A-Za-z0-9]{36}", "ghp_***", redacted)
+    
     return redacted
 
 # ---------- Service health wait ----------

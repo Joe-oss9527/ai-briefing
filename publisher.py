@@ -40,13 +40,35 @@ def maybe_publish_telegram(markdown_text: str, output_cfg: dict):
 
 # ---------- GitHub backup ----------
 
-def _run(cmd, cwd=None, env=None):
-    safe_cmd = [c if "x-access-token" not in c else "***" for c in cmd]
+def _run_safe(cmd_args, cwd=None, env=None):
+    """Execute git commands safely with whitelist validation."""
+    # Whitelist of allowed git commands
+    ALLOWED_GIT_COMMANDS = [
+        'init', 'config', 'remote', 'add', 'set-url', 
+        'checkout', 'add', 'commit', 'push', 'status', 
+        'rev-parse', 'log', 'diff'
+    ]
+    
+    # Validate command
+    if not cmd_args or len(cmd_args) < 2:
+        raise ValueError("Invalid command format")
+    
+    if cmd_args[0] != 'git':
+        raise ValueError(f"Only git commands are allowed, got: {cmd_args[0]}")
+    
+    if cmd_args[1] not in ALLOWED_GIT_COMMANDS:
+        raise ValueError(f"Git subcommand '{cmd_args[1]}' not allowed")
+    
+    # Redact sensitive information for logging
+    safe_cmd = [c if "x-access-token" not in c else "***" for c in cmd_args]
     logger.info("git$ %s", " ".join(safe_cmd))
-    cp = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True)
+    
+    # Execute with shell=False for safety
+    cp = subprocess.run(cmd_args, shell=False, cwd=cwd, env=env, capture_output=True, text=True)
     if cp.returncode != 0:
-        logger.error("git failed: rc=%d stdout=%s stderr=%s", cp.returncode, cp.stdout, cp.stderr)
-        raise RuntimeError(f"git error: {cp.stderr}")
+        logger.error("git failed: rc=%d stdout=%s stderr=%s", cp.returncode, 
+                    redact_secrets(cp.stdout), redact_secrets(cp.stderr))
+        raise RuntimeError(f"git error: {redact_secrets(cp.stderr)}")
     return cp.stdout.strip()
 
 def _tokenized_url(url: str, token: str) -> str:
@@ -69,33 +91,33 @@ def maybe_github_backup(output_dir: str, output_cfg: dict, briefing_id: str, run
     commit_prefix = gb.get("commit_message_prefix", "briefing")
 
     try:
-        _run(["git", "rev-parse", "--is-inside-work-tree"], cwd=repo_dir)
+        _run_safe(["git", "rev-parse", "--is-inside-work-tree"], cwd=repo_dir)
         logger.info("github_backup: using existing git repo at %s", repo_dir)
     except Exception:
         logger.info("github_backup: init new repo at %s", repo_dir)
-        _run(["git", "init"], cwd=repo_dir)
+        _run_safe(["git", "init"], cwd=repo_dir)
 
     if repo_url_cfg:
         try:
-            _run(["git", "remote", "add", "origin", _tokenized_url(repo_url_cfg, token)], cwd=repo_dir)
+            _run_safe(["git", "remote", "add", "origin", _tokenized_url(repo_url_cfg, token)], cwd=repo_dir)
         except Exception:
-            _run(["git", "remote", "set-url", "origin", _tokenized_url(repo_url_cfg, token)], cwd=repo_dir)
+            _run_safe(["git", "remote", "set-url", "origin", _tokenized_url(repo_url_cfg, token)], cwd=repo_dir)
 
-    _run(["git", "config", "user.name", author_name], cwd=repo_dir)
-    _run(["git", "config", "user.email", author_email], cwd=repo_dir)
-    _run(["git", "checkout", "-B", branch], cwd=repo_dir)
-    _run(["git", "add", "--all", pathspec], cwd=repo_dir)
+    _run_safe(["git", "config", "user.name", author_name], cwd=repo_dir)
+    _run_safe(["git", "config", "user.email", author_email], cwd=repo_dir)
+    _run_safe(["git", "checkout", "-B", branch], cwd=repo_dir)
+    _run_safe(["git", "add", "--all", pathspec], cwd=repo_dir)
 
-    status = _run(["git", "status", "--porcelain"], cwd=repo_dir)
+    status = _run_safe(["git", "status", "--porcelain"], cwd=repo_dir)
     if not status:
         logger.info("github_backup: no changes detected for pathspec=%s", pathspec)
         return
 
     msg = f"{commit_prefix}: {briefing_id} run={run_id}"
-    _run(["git", "commit", "-m", msg], cwd=repo_dir)
+    _run_safe(["git", "commit", "-m", msg], cwd=repo_dir)
 
     try:
-        _run(["git", "push", "origin", branch], cwd=repo_dir)
+        _run_safe(["git", "push", "origin", branch], cwd=repo_dir)
     except Exception as e:
         logger.error("github_backup push failed: %s", e)
         raise

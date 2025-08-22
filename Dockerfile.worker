@@ -2,16 +2,39 @@ FROM python:3.11-slim
 
 WORKDIR /workspace
 
-RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     curl     wget     ca-certificates     git     openssh-client     && rm -rf /var/lib/apt/lists/*
+# Install system dependencies as root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    wget \
+    ca-certificates \
+    git \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -d /home/appuser -m appuser
+
+# Install Python dependencies as root (for system-wide access)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 下载 fastText 语言识别模型
-RUN wget -O /workspace/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
+# Download fastText model and set ownership
+RUN wget -O /workspace/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin \
+    && chown appuser:appuser /workspace/lid.176.bin
 
-COPY . .
+# Copy application code and set ownership
+COPY --chown=appuser:appuser . .
 
-ENV HF_HOME="/root/.cache/huggingface"
+# Create necessary directories with proper permissions
+RUN mkdir -p /home/appuser/.cache/huggingface /workspace/logs /workspace/out \
+    && chown -R appuser:appuser /home/appuser/.cache /workspace/logs /workspace/out
+
+# Switch to non-root user
+USER appuser
+
+# Set environment variables for the non-root user
+ENV HF_HOME="/home/appuser/.cache/huggingface"
+ENV HOME="/home/appuser"
 
 ENTRYPOINT ["python"]

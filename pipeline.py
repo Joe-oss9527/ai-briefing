@@ -33,18 +33,32 @@ def _embed_texts(texts: List[str]) -> np.ndarray:
 def _near_duplicate_mask(embs: np.ndarray, threshold: float) -> List[bool]:
     n = embs.shape[0]
     keep = [True] * n
+    duplicates_found = 0
     sims = cosine_similarity(embs)
+    
     for i in range(n):
         if not keep[i]:
             continue
         for j in range(i + 1, n):
             if keep[j] and sims[i, j] >= threshold:
                 keep[j] = False
+                duplicates_found += 1
+                logger.debug("Duplicate detected: item %d similar to %d (similarity=%.3f)", j, i, sims[i, j])
+    
+    logger.info("Near-duplicate detection: %d duplicates found out of %d items (threshold=%.2f)", 
+                duplicates_found, n, threshold)
     return keep
 
 def _cluster(embs: np.ndarray, min_cluster_size: int) -> np.ndarray:
     clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean')
     labels = clusterer.fit_predict(embs)
+    
+    unique_labels = set(labels)
+    n_clusters = len(unique_labels) - (1 if -1 in unique_labels else 0)
+    n_noise = list(labels).count(-1)
+    
+    logger.info("Clustering complete: %d clusters found, %d noise points (min_size=%d)", 
+                n_clusters, n_noise, min_cluster_size)
     return labels
 
 def _cluster_centrality(embs: np.ndarray, idxs: List[int]) -> Tuple[int, np.ndarray]:
@@ -76,6 +90,8 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
 
     horizon = now_utc().timestamp() - cfg["time_window_hours"] * 3600
     filtered = []
+    items_too_old = 0
+    
     for it in raw_items:
         try:
             ts = it["timestamp"]
@@ -86,10 +102,19 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
                 t = float(ts)
             else:
                 t = now_utc().timestamp()
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to parse timestamp for item %s: %s", it.get("id"), str(e))
             t = now_utc().timestamp()
+        
         if t >= horizon:
             filtered.append(it)
+        else:
+            items_too_old += 1
+            logger.debug("Item %s filtered: too old (age=%.1f hours)", 
+                        it.get("id"), (now_utc().timestamp() - t) / 3600)
+    
+    logger.info("Time filter: kept %d items, filtered %d old items (window=%d hours)", 
+                len(filtered), items_too_old, cfg["time_window_hours"])
 
     if not filtered:
         logger.info("pipeline: no items after time_window filter")

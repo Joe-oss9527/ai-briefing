@@ -3,6 +3,7 @@ import argparse
 import time
 import yaml
 import uuid
+import requests
 from typing import Dict, Any, List
 
 from adapters import twitter_list_adapter, rss_adapter, reddit_adapter, hackernews_adapter
@@ -13,18 +14,22 @@ from utils import write_output, validate_config, wait_for_service, get_logger
 
 logger = get_logger(__name__)
 
-def _wait_infra():
-    rsshub = os.getenv("RSSHUB_ORIGIN", "http://rsshub:1200") + "/healthz"
+def _wait_infra(source_type=None):
+    """Wait for infrastructure services to be ready."""
     tei = os.getenv("TEI_ORIGIN", "http://tei:80") + "/health"
     ollama = os.getenv("OLLAMA_ORIGIN", "http://ollama:11434") + "/api/tags"
-    try:
+    
+    # Only check RSSHub if actually needed
+    if source_type == "twitter_list":
+        rsshub = os.getenv("RSSHUB_ORIGIN", "http://rsshub:1200") + "/healthz"
         wait_for_service(rsshub)
-    except Exception:
-        logger.warning("RSSHub health check skipped/failed (may still be usable)")
+    
+    # TEI and Ollama are always critical
     wait_for_service(tei)
     wait_for_service(ollama)
 
 def _fetch_items(source_cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Fetch items from configured source."""
     t = source_cfg["type"]
     if t == "twitter_list":
         return twitter_list_adapter.fetch(source_cfg)
@@ -45,13 +50,14 @@ def main():
     run_id = uuid.uuid4().hex[:8]
     logger.info("=== run start id=%s ===", run_id)
 
-    _wait_infra()
-
     with open(args.config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     validate_config(cfg)
     briefing_id = cfg["briefing_id"]
-    logger.info("config loaded briefing_id=%s title=%s", briefing_id, cfg["briefing_title"])
+    source_type = cfg["source"]["type"]
+    logger.info("config loaded briefing_id=%s title=%s source=%s", briefing_id, cfg["briefing_title"], source_type)
+
+    _wait_infra(source_type)
 
     t0 = time.monotonic()
     raw_items = _fetch_items(cfg["source"])
