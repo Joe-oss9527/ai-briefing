@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.venv/
+venv/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local env & logs & outputs
+.env
+logs/
+out/
+*.log
+
+# Caches / models
+/root/.cache/
+models-cache/
+hf_cache/
+*.bin
+*.pt
+
+# Node/browsers (if any future tooling)
+node_modules/
+dist/

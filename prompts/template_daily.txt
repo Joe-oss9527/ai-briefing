@@ -1,0 +1,35 @@
+[BRIEFING TITLE]
+{{briefing_title}}
+
+[INSTRUCTIONS]
+- Audience: developers building real products.
+- Group related items into coherent topics discovered by clustering.
+- For each topic, write: a short headline, 2–4 bullet points (benefits, caveats, usage notes), and 1–3 canonical links.
+- Prefer original sources (docs, repos, release notes).
+- Keep neutral tone, avoid speculation.
+
+[INPUT SPEC]
+You receive a JSON list of topic bundles. Each bundle has:
+- "topic_id": string
+- "topic_label": short phrase of the topic (if provided)
+- "items": array of objects { "id", "text", "url", "author", "timestamp" }
+
+[OUTPUT SPEC]
+Return a JSON with:
+{
+  "title": "...",
+  "date": "<UTC ISO8601>",
+  "topics": [
+    {
+      "topic_id": "...",
+      "headline": "...",
+      "bullets": ["...", "..."],
+      "links": ["...", "..."]
+    }
+  ]
+}
+After the JSON, also produce a Markdown section using the same content.
+
+[BEGIN INPUT JSON]
+{{bundles_json}}
+[END INPUT JSON]

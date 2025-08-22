@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+WORKDIR /workspace
+
+RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     curl     wget     ca-certificates     git     openssh-client     && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 下载 fastText 语言识别模型
+RUN wget -O /workspace/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
+
+COPY . .
+
+ENV HF_HOME="/root/.cache/huggingface"
+
+ENTRYPOINT ["python"]

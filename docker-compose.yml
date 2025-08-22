@@ -1,0 +1,84 @@
+services:
+  rsshub:
+    image: diygod/rsshub:latest
+    restart: unless-stopped
+    ports:
+      - "1200:1200"
+    environment:
+      NODE_ENV: production
+      CACHE_TYPE: redis
+      REDIS_URL: "redis://redis:6379/"
+      PUPPETEER_WS_ENDPOINT: "ws://browserless:3000"
+      TWITTER_AUTH_TOKEN: ${TWITTER_AUTH_TOKEN}
+      TWITTER_THIRD_PARTY_API: ${TWITTER_THIRD_PARTY_API}
+    depends_on:
+      - redis
+      - browserless
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1200/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  browserless:
+    image: browserless/chrome:latest
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+  tei:
+    image: ghcr.io/huggingface/text-embeddings-inference:1.8
+    restart: unless-stopped
+    command: ["--model-id", "Qwen/Qwen3-Embedding-0.6B"]
+    environment:
+      HF_HUB_ENABLE_HF_TRANSFER: "1"
+    ports:
+      - "8080:80"
+    volumes:
+      - tei-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: "no"
+    depends_on:
+      - rsshub
+      - tei
+      - ollama
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - models-cache:/root/.cache/huggingface
+      - logs:/workspace/logs
+    env_file: .env
+    command: ["sleep", "infinity"]
+
+volumes:
+  redis-data: {}
+  tei-data: {}
+  ollama: {}
+  models-cache: {}
+  logs: {}
