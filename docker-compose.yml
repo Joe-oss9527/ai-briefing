@@ -37,11 +37,10 @@ services:
       - redis-data:/data
 
   tei:
-    # 针对 ARM64 架构使用 CPU 版本
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
-    platform: linux/amd64  # 使用 Rosetta 2 模拟
+    # 使用最新版本修复下载问题
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
     restart: unless-stopped
-    command: ["--model-id", "Qwen/Qwen3-Embedding-0.6B"]
+    command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
     environment:
       HF_HUB_ENABLE_HF_TRANSFER: "1"
     ports:
@@ -82,7 +81,9 @@ services:
       - models-cache:/root/.cache/huggingface
       - logs:/workspace/logs
     env_file: .env
-    command: ["sleep", "infinity"]
+    command: ["/bin/sleep", "infinity"]
+    networks:
+      - default
 
 volumes:
   redis-data: {}
