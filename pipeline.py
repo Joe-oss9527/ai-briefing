@@ -13,7 +13,7 @@ from sentence_transformers import CrossEncoder
 
 from utils import now_utc, get_logger
 
-TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://tei:80")
+TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://host.docker.internal:8080")
 LID_MODEL_PATH = os.getenv("LID_MODEL_PATH", "/workspace/lid.176.bin")
 logger = get_logger(__name__)
 

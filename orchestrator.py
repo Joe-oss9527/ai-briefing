@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 def _wait_infra(source_type=None):
     """Wait for infrastructure services to be ready."""
-    tei = os.getenv("TEI_ORIGIN", "http://tei:80") + "/health"
+    tei = os.getenv("TEI_ORIGIN", "http://host.docker.internal:8080") + "/health"
     ollama = os.getenv("OLLAMA_ORIGIN", "http://ollama:11434") + "/api/tags"
     
     # Only check RSSHub if actually needed
