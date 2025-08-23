@@ -19,14 +19,21 @@ logger = get_logger(__name__)
 
 def _embed_texts(texts: List[str]) -> np.ndarray:
     st = time.monotonic()
-    resp = requests.post(f"{TEI_ORIGIN}/embeddings", json={"inputs": texts}, timeout=60)
-    resp.raise_for_status()
-    data = resp.json()
-    if "data" in data:
-        embs = [d["embedding"] for d in data["data"]]
-    else:
-        embs = data["embeddings"]
-    arr = np.array(embs, dtype=np.float32)
+    batch_size = 16  # Process texts in smaller batches
+    all_embs = []
+    
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i+batch_size]
+        resp = requests.post(f"{TEI_ORIGIN}/embeddings", json={"input": batch}, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        if "data" in data:
+            embs = [d["embedding"] for d in data["data"]]
+        else:
+            embs = data["embeddings"]
+        all_embs.extend(embs)
+    
+    arr = np.array(all_embs, dtype=np.float32)
     logger.info("embed_texts count=%d took_ms=%d", len(texts), int((time.monotonic()-st)*1000))
     return arr
 
@@ -120,10 +127,10 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
         logger.info("pipeline: no items after time_window filter")
         return []
 
-    lid = fasttext.load_model(LID_MODEL_PATH)
+    # lid = fasttext.load_model(LID_MODEL_PATH)
     texts = [it["text"] for it in filtered]
-    for tx in texts:
-        lid.predict(tx.replace("\n", " ")[:1000])  # 标注语言（当前未做强过滤）
+    # for tx in texts:
+    #     lid.predict(tx.replace("\n", " ")[:1000])  # 标注语言（当前未做强过滤）
 
     embs = _embed_texts(texts)
 

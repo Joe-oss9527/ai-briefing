@@ -30,7 +30,7 @@ def _call_gemini(model: str, text: str) -> str:
     client = genai.Client(api_key=GEMINI_API_KEY)
     resp = client.models.generate_content(
         model=model,
-        contents=[gtypes.Part.from_text(text)]
+        contents=[text]
     )
     return resp.text
 

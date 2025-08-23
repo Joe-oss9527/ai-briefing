@@ -36,22 +36,23 @@ services:
     volumes:
       - redis-data:/data
 
-  tei:
-    # 使用最新版本修复下载问题
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
-    restart: unless-stopped
-    command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
-    environment:
-      HF_HUB_ENABLE_HF_TRANSFER: "1"
-    ports:
-      - "8080:80"
-    volumes:
-      - tei-data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 10
+# TEI service disabled - using local installation
+  # tei:
+  #   # 使用最新版本修复下载问题
+  #   image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+  #   restart: unless-stopped
+  #   command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
+  #   environment:
+  #     HF_HUB_ENABLE_HF_TRANSFER: "1"
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - tei-data:/data
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost/health"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 10
 
   ollama:
     image: ollama/ollama:latest
@@ -73,7 +74,6 @@ services:
     restart: "no"
     depends_on:
       - rsshub
-      - tei
       - ollama
     working_dir: /workspace
     volumes:
@@ -81,9 +81,11 @@ services:
       - models-cache:/root/.cache/huggingface
       - logs:/workspace/logs
     env_file: .env
-    command: ["/bin/sleep", "infinity"]
+    command: ["python", "-c", "import time; time.sleep(999999999)"]
     networks:
       - default
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   redis-data: {}

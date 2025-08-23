@@ -3,7 +3,7 @@ briefing_title: "开发者工具前沿简报"
 
 source:
   type: "twitter_list"
-  id: "1502570462752219136"   # Twitter List ID
+  id: "1933036352834281792"   # Twitter List ID
 
 processing:
   time_window_hours: 24

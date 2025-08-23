@@ -10,10 +10,21 @@ AI-Briefing is an extensible briefing generation platform that aggregates conten
 
 ### Quick Start with Makefile (Recommended)
 ```bash
+# Installation and setup
+make setup         # 🚀 One-click install all dependencies (Rust, TEI, models)
+make check-deps    # Check system dependency status
+make install-deps  # Install system dependencies (Rust, git-lfs)
+make install-tei   # Compile install TEI (Metal GPU)
+make download-models # Download AI model files
+make clean-tei     # Clean TEI related files
+
 # Service management
 make start          # Start all services
 make stop           # Stop all services
+make restart        # Restart all services
 make status         # Check service status
+make start-tei      # Start local TEI service
+make stop-tei       # Stop local TEI service
 make check-services # Health check all services
 
 # Data collection (with progress indicators)
@@ -45,7 +56,8 @@ make clean-output  # Clean files older than 7 days
 
 ### Direct Docker Commands
 ```bash
-# Start all services (RSSHub, TEI, Ollama, Redis, Browserless)
+# Start all services (RSSHub, Ollama, Redis, Browserless)
+# Note: TEI now runs locally with Metal GPU acceleration
 docker compose up -d --build
 
 # Run a briefing task
@@ -140,8 +152,9 @@ make shell  # Or: docker compose run --rm worker /bin/bash
 
 ### Service Dependencies
 - **TEI** (Text Embeddings Inference): Critical for embedding generation
-  - **IMPORTANT**: Use `cpu-latest` image, not `cpu-1.5` (has download bug)
-  - Model: `sentence-transformers/all-MiniLM-L6-v2` (recommended for compatibility)
+  - **NEW**: Runs locally with Metal GPU acceleration for Apple Silicon
+  - Model: `sentence-transformers/all-MiniLM-L6-v2` (optimized for compatibility)
+  - Installation: Use `make install-tei` for native compilation with Metal support
 - **Ollama**: Required if using local LLM models
 - **RSSHub**: Only needed for Twitter sources
 - **Redis**: Cache backend for RSSHub
@@ -216,9 +229,20 @@ GITHUB_TOKEN=xxx
 ## Troubleshooting
 
 ### TEI Service Issues
-**Problem**: TEI container fails with "relative URL without a base" error
-**Root Cause**: TEI v1.5 has a bug in Hugging Face model downloading
-**Solution**: 
+**Problem**: TEI Docker issues on Apple Silicon (ARM64 architecture)
+**Root Cause**: Docker TEI images don't support ARM64 natively, causing performance issues
+**Solution**: Use native TEI installation with Metal GPU acceleration
+```bash
+# Install TEI locally with Metal support
+make install-tei
+
+# Start local TEI service
+make start-tei
+
+# TEI runs on localhost:8080 with Metal GPU acceleration
+```
+
+**Legacy Docker Solution** (not recommended for Apple Silicon):
 ```yaml
 tei:
   image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest  # Use latest, not 1.5
@@ -226,12 +250,12 @@ tei:
 ```
 
 ### Worker Container Issues
-**Problem**: "can't open file '/workspace/sleep'" error
+**Problem**: "can't open file '/workspace/sleep'" or command execution errors
 **Root Cause**: Incorrect command format in docker-compose.yml
 **Solution**:
 ```yaml
 worker:
-  command: ["/bin/sleep", "infinity"]  # Use full path
+  command: ["python", "-c", "import time; time.sleep(999999999)"]  # Correct Python syntax
 ```
 
 ### Network Connectivity Issues

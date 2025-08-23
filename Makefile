@@ -1,7 +1,7 @@
 # AI-Briefing 便捷命令
 # 使用: make [命令]
 
-.PHONY: help start stop restart status hn twitter reddit all show view-hn view-twitter view-reddit logs clean-output check-services
+.PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit logs clean-output check-services check-deps install-deps install-tei clean-tei download-models setup
 
 # 默认显示帮助
 help:
@@ -13,6 +13,8 @@ help:
 	@echo "  make stop           - 停止所有服务"
 	@echo "  make restart        - 重启所有服务"
 	@echo "  make status         - 查看服务状态"
+	@echo "  make start-tei      - 启动本地 TEI 服务"
+	@echo "  make stop-tei       - 停止本地 TEI 服务"
 	@echo "  make check-services - 检查服务健康状态"
 	@echo ""
 	@echo "数据收集:"
@@ -27,6 +29,14 @@ help:
 	@echo "  make view-twitter  - 查看最新 Twitter 摘要内容"
 	@echo "  make view-reddit   - 查看最新 Reddit 摘要内容"
 	@echo ""
+	@echo "安装和配置:"
+	@echo "  make setup         - 🚀 一键安装所有依赖 (推荐新用户)"
+	@echo "  make check-deps    - 检查系统依赖状态"
+	@echo "  make install-deps  - 安装系统依赖 (Rust, git-lfs)"
+	@echo "  make install-tei   - 编译安装 TEI (Metal GPU)"
+	@echo "  make download-models - 下载 AI 模型文件"
+	@echo "  make clean-tei     - 清理 TEI 相关文件"
+	@echo ""
 	@echo "其他:"
 	@echo "  make logs          - 查看实时日志"
 	@echo "  make clean-output  - 清理 7 天前的输出文件"
@@ -36,16 +46,20 @@ help:
 
 start:
 	@echo "🚀 启动 AI-Briefing 服务..."
+	@echo "  启动 Docker 服务..."
 	@docker compose up -d --build
+	@echo "  启动本地 TEI 服务 (Metal GPU)..."
+	@./scripts/start-tei.sh > /dev/null 2>&1 &
 	@echo "⏳ 等待服务就绪..."
-	@sleep 5
-	@echo "✅ 服务已启动！"
+	@sleep 8
+	@echo "✅ 所有服务已启动！"
 	@make check-services
 
 stop:
 	@echo "🛑 停止 AI-Briefing 服务..."
 	@docker compose down
-	@echo "✅ 服务已停止"
+	@pkill -f text-embeddings-router || echo "  TEI 服务未在运行"
+	@echo "✅ 所有服务已停止"
 
 restart:
 	@echo "🔄 重启 AI-Briefing 服务..."
@@ -55,6 +69,17 @@ restart:
 status:
 	@echo "📊 服务状态："
 	@docker compose ps
+
+start-tei:
+	@echo "⚡ 启动本地 TEI 服务 (Metal GPU)..."
+	@./scripts/start-tei.sh &
+	@sleep 3
+	@echo "✅ TEI 服务已启动！"
+
+stop-tei:
+	@echo "🛑 停止本地 TEI 服务..."
+	@pkill -f text-embeddings-router || echo "TEI 服务未在运行"
+	@echo "✅ TEI 服务已停止"
 
 check-services:
 	@echo "🔍 检查服务健康状态..."
@@ -73,7 +98,7 @@ hn:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm --no-deps worker python orchestrator.py --config configs/hackernews_daily.yaml
+	@docker compose run --rm worker orchestrator.py --config configs/hackernews_daily.yaml
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
 	@echo "📁 输出位置: out/hackernews_daily/"
@@ -85,7 +110,7 @@ twitter:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm --no-deps worker python orchestrator.py --config configs/twitter_dev_tools.yaml
+	@docker compose run --rm worker orchestrator.py --config configs/twitter_dev_tools.yaml
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
 	@echo "📁 输出位置: out/twitter_dev_tools/"
@@ -97,7 +122,7 @@ reddit:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm --no-deps worker python orchestrator.py --config configs/reddit_gamedev.yaml
+	@docker compose run --rm worker orchestrator.py --config configs/reddit_gamedev.yaml
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/reddit_gamedev/"
@@ -170,6 +195,108 @@ clean-output:
 	@echo "✅ 清理完成"
 
 # ========== 开发调试 ==========
+
+check-deps:
+	@echo "🔍 检查系统依赖..."
+	@echo -n "  Docker: "
+	@docker --version > /dev/null 2>&1 && echo "✅ 已安装" || echo "❌ 未安装"
+	@echo -n "  Docker Compose: "
+	@docker compose version > /dev/null 2>&1 && echo "✅ 已安装" || echo "❌ 未安装"
+	@echo -n "  Rust: "
+	@rustc --version > /dev/null 2>&1 && echo "✅ 已安装" || echo "❌ 未安装"
+	@echo -n "  Cargo: "
+	@cargo --version > /dev/null 2>&1 && echo "✅ 已安装" || echo "❌ 未安装"
+	@echo -n "  git-lfs: "
+	@git lfs version > /dev/null 2>&1 && echo "✅ 已安装" || echo "❌ 未安装"
+	@echo -n "  TEI Binary: "
+	@test -f ~/.cargo/bin/text-embeddings-router && echo "✅ 已安装" || echo "❌ 未安装"
+	@echo -n "  fastText Model: "
+	@test -f lid.176.bin && echo "✅ 已安装" || echo "❌ 未安装"
+
+install-deps:
+	@echo "📦 安装系统依赖..."
+	@echo "正在检查并安装缺失的依赖..."
+	@if ! rustc --version > /dev/null 2>&1; then \
+		echo "  安装 Rust..."; \
+		curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
+		source ~/.cargo/env; \
+	fi
+	@if ! git lfs version > /dev/null 2>&1; then \
+		echo "  安装 git-lfs..."; \
+		if command -v brew > /dev/null; then \
+			brew install git-lfs; \
+		else \
+			echo "  ❌ 请手动安装 git-lfs"; \
+			exit 1; \
+		fi \
+	fi
+	@echo "✅ 依赖安装完成！"
+
+install-tei:
+	@echo "🛠️  编译安装 TEI (Metal GPU 支持)..."
+	@if test -f ~/.cargo/bin/text-embeddings-router; then \
+		echo "  TEI 已安装，跳过编译"; \
+	else \
+		echo "  正在克隆 TEI 源码..."; \
+		rm -rf /tmp/tei-build; \
+		cd /tmp && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/huggingface/text-embeddings-inference.git tei-build; \
+		cd /tmp/tei-build && git restore --source=HEAD :/; \
+		echo "  正在编译 TEI (此过程需要 3-5 分钟)..."; \
+		cd /tmp/tei-build && cargo install --path router -F metal; \
+		echo "  验证安装..."; \
+		test -f ~/.cargo/bin/text-embeddings-router && echo "  ✅ TEI 编译安装成功！" || (echo "  ❌ TEI 安装失败"; exit 1); \
+		rm -rf /tmp/tei-build; \
+	fi
+
+clean-tei:
+	@echo "🗑️  清理 TEI 相关文件..."
+	@rm -rf /tmp/tei-build
+	@if test -f ~/.cargo/bin/text-embeddings-router; then \
+		echo "  移除 TEI 二进制文件..."; \
+		rm -f ~/.cargo/bin/text-embeddings-router; \
+	fi
+	@echo "✅ TEI 清理完成"
+
+download-models:
+	@echo "📥 下载 AI 模型文件..."
+	@if test -f lid.176.bin; then \
+		echo "  fastText 模型已存在，跳过下载"; \
+	else \
+		echo "  正在下载 fastText 语言识别模型 (125MB)..."; \
+		wget -O lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin; \
+		echo "  验证文件完整性..."; \
+		if test -f lid.176.bin && test $$(stat -f%z lid.176.bin 2>/dev/null || stat -c%s lid.176.bin 2>/dev/null) -gt 100000000; then \
+			echo "  ✅ fastText 模型下载完成！"; \
+		else \
+			echo "  ❌ 模型文件下载失败或不完整"; \
+			rm -f lid.176.bin; \
+			exit 1; \
+		fi \
+	fi
+
+setup:
+	@echo "======================================"
+	@echo "🚀 AI-Briefing 一键安装"
+	@echo "======================================"
+	@echo "此过程将自动安装所有必需组件："
+	@echo "  • 系统依赖 (Rust, git-lfs)"
+	@echo "  • TEI 文本嵌入服务 (Metal GPU)"
+	@echo "  • AI 模型文件"
+	@echo ""
+	@make install-deps
+	@echo ""
+	@make install-tei
+	@echo ""
+	@make download-models
+	@echo ""
+	@echo "🔍 最终验证..."
+	@make check-deps
+	@echo ""
+	@echo "🎉 安装完成！现在您可以使用："
+	@echo "  make start      - 一键启动所有服务 (Docker + TEI)"
+	@echo "  make all        - 收集所有数据源"
+	@echo "  make show       - 查看生成的摘要文件"
+	@echo "======================================"
 
 test-config:
 	@echo "🔍 验证配置文件..."
