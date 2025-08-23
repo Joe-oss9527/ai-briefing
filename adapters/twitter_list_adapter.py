@@ -35,9 +35,9 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
             author = entry["author"]
 
         items.append({
-            "id": entry.get("guid") or entry.get("link"),
+            "id": entry.get("id") or entry.get("url"),
             "text": text,
-            "url": entry.get("link", ""),
+            "url": entry.get("url", ""),
             "author": author,
             "timestamp": timestamp.isoformat(),
             "metadata": {"source": "twitter"}
