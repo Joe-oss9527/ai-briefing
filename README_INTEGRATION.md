@@ -1,3 +1,4 @@
+
 # Integration Notes (Unified LLM + JSON-only Renderer)
 
 This project now uses **JSON-only LLM output** and renders Markdown locally for stability.
@@ -49,9 +50,9 @@ docker compose run --rm ai-briefing --config configs/hackernews_daily.yaml
 ```
 
 
-## 非破坏式对接你现有的 Make/Docker
+
 - 我不会直接覆盖你的 `Makefile` / `Dockerfile` / `docker-compose.yml`。
-- 参考样例在 `ops_samples/`，如需快速追加入口：
+- 如需快速追加入口：
 ```bash
 python scripts/ops_patch.py          # 只在缺失时追加 make validate / make run
 make validate CONFIG=configs/xxxx.yaml
@@ -82,3 +83,5 @@ docker run --rm --env-file .env   -v $(pwd)/configs:/app/configs   -v $(pwd)/pro
 make validate CONFIG=configs/hackernews_daily.yaml
 make run CONFIG=configs/twitter_dev_tools.yaml
 ```
+
+

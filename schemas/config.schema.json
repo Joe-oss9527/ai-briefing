@@ -135,8 +135,6 @@
       "required": [
         "llm_provider",
         "prompt_file",
-        "prompt_system",
-        "prompt_template",
         "target_item_count"
       ],
       "properties": {

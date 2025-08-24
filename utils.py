@@ -1,3 +1,4 @@
+
 import os
 import re
 import json
@@ -41,7 +42,9 @@ def load_file(path: str) -> str:
         return f.read()
 
 def validate_config(cfg: dict):
-    schema = json.loads(load_file("schemas/config.schema.json"))
+    here = os.path.dirname(os.path.abspath(__file__))
+    schema_path = os.path.join(here, "schemas", "config.schema.json")
+    schema = json.loads(load_file(schema_path))
     try:
         validate(instance=cfg, schema=schema, cls=Draft202012Validator)
     except ValidationError as e:
@@ -156,3 +159,4 @@ def wait_for_service(url: str, expect_status: int = 200, timeout: float = 5.0):
     r = requests.get(url, timeout=timeout)
     assert r.status_code == expect_status
     return True
+

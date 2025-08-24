@@ -18,16 +18,6 @@ def _mk_prompt(bundles: List[Dict[str, Any]], cfg: dict) -> str:
     from ai_briefing.prompt_loader import render_prompt
     return render_prompt(briefing_title, bundles, prompt_file)
 
-    # Fallback: legacy system/template
-    from utils import load_file
-    sys_path = summ.get("prompt_file")
-    tmpl_path = summ.get("prompt_file")
-    sys_prompt = load_file(sys_path) if sys_path else ""
-    tmpl = load_file(tmpl_path) if tmpl_path else ""
-    return f"{sys_prompt}
-
-" + tmpl.replace("{{briefing_title}}", briefing_title).replace("{{bundles_json}}", bundles_json)
-
 def _is_empty(obj: dict) -> bool:
     topics = (obj or {}).get("topics") or []
     return len(topics) == 0
