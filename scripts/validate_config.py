@@ -8,7 +8,7 @@ def main():
     ap.add_argument("--config", required=True)
     args = ap.parse_args()
     cfg_path = pathlib.Path(args.config)
-    schema_path = (pathlib.Path(__file__).parent / ".." / "schemas" / "config.schema.json").resolve()
+    schema_path = (pathlib.Path(__file__).parent / ".." / "briefing" / "schemas" / "config.schema.json").resolve()
     cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     try:

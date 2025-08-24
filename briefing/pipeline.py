@@ -1,3 +1,4 @@
+
 import os
 import time
 import json
@@ -11,7 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import hdbscan
 from sentence_transformers import CrossEncoder
 
-from utils import now_utc, get_logger
+from briefing.utils import now_utc, get_logger
 
 TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://host.docker.internal:8080")
 LID_MODEL_PATH = os.getenv("LID_MODEL_PATH", "/workspace/lid.176.bin")
@@ -170,3 +171,4 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
     bundles.sort(key=lambda b: len(b["items"]), reverse=True)
     logger.info("pipeline: bundles=%d", len(bundles))
     return bundles
+

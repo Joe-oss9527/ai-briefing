@@ -1,9 +1,10 @@
+
 import os
 import datetime as dt
 from typing import List, Dict, Any
 import praw
 
-from utils import clean_text, get_logger
+from briefing.utils import clean_text, get_logger
 
 CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
 CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
@@ -53,3 +54,4 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     logger.info("reddit_adapter fetched_items=%d subs=%s", len(items), ",".join(subreddits))
     return items
+

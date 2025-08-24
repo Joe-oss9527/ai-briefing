@@ -1,4 +1,5 @@
-# ai_briefing/llm_adapters.py
+
+# briefing/llm/registry.py
 """
 Strict adapters with configurable options and retries.
 
@@ -11,8 +12,6 @@ Supported provider_options:
     project: str
     location: str (default: us-central1)
     api_version: str (e.g., "v1")
-- ollama:
-    host: str (default: http://127.0.0.1:11434)
 
 Common controls (read by caller):
 - temperature: float
@@ -112,9 +111,7 @@ def call_gemini(prompt: str, model: str, temperature: float, timeout: int, retri
             attempt += 1
 
 
-def call_ollama(prompt: str, model: str, temperature: float, timeout: int, retries: int, options: dict | None = None) -> str:
     options = options or {}
-    host = options.get("host") or os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434"
     url = f"{host.rstrip('/')}/api/generate"
     payload = {
         "model": model,
@@ -143,6 +140,5 @@ def call_with_options(provider: str, prompt: str, model: str, temperature: float
         return call_openai(prompt, model, temperature, timeout, retries, options)
     if provider == "gemini":
         return call_gemini(prompt, model, temperature, timeout, retries, options)
-    if provider == "ollama":
-        return call_ollama(prompt, model, temperature, timeout, retries, options)
     raise ValueError(f"Unknown llm_provider={provider}")
+

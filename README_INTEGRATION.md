@@ -5,16 +5,14 @@ This project now uses **JSON-only LLM output** and renders Markdown locally for 
 
 ## What changed
 - `summarizer.py` expects **only JSON** from the model and validates it via `schemas/briefing.schema.json`.
-- LLM provider is pluggable via `ai_briefing/llm_adapters.py` and supports **OpenAI / Gemini / Ollama**.
-- CLI entry added: `cli_generate_briefing.py --config configs/hackernews_daily.yaml`.
+- LLM provider is pluggable via `briefing/llm/registry.py` and supports **OpenAI / Gemini**.
+- CLI entry added: `cli.py --config configs/ai-briefing-hackernews.yaml`.
 
 ## Config
 ```yaml
 summarization:
-  llm_provider: "openai"   # or "gemini" / "ollama"
   openai_model: "gpt-4o-mini"
   gemini_model: "gemini-2.0-flash-exp"
-  ollama_model: "qwen2.5:7b-instruct"
   target_item_count: 10
 ```
 
@@ -34,25 +32,25 @@ summarization:
 ## Makefile（默认指向分源配置）
 ```bash
 make install
-make validate CONFIG=configs/hackernews_daily.yaml
-make run CONFIG=configs/twitter_dev_tools.yaml
+make validate CONFIG=configs/ai-briefing-hackernews.yaml
+make run CONFIG=configs/ai-briefing-twitter-list.yaml
 ```
 
 ## Docker / Compose（默认 Twitter 配置，可覆盖）
 ```bash
 docker build -t ai-briefing:latest .
-docker run --rm --env-file .env -v $(pwd)/configs:/app/configs -v $(pwd)/prompts:/app/prompts -v $(pwd)/schemas:/app/schemas -v $(pwd)/output:/app/output ai-briefing:latest --config configs/twitter_dev_tools.yaml
+docker run --rm --env-file .env -v $(pwd)/configs:/app/configs -v $(pwd)/prompts:/app/prompts -v $(pwd)/schemas:/app/schemas -v $(pwd)/output:/app/output ai-briefing:latest --config configs/ai-briefing-twitter-list.yaml
 
 # 或
 docker compose up --build
 # 也可覆盖：
-docker compose run --rm ai-briefing --config configs/hackernews_daily.yaml
+docker compose run --rm ai-briefing --config configs/ai-briefing-hackernews.yaml
 ```
 
 
-
+## 非破坏式对接你现有的 Make/Docker
 - 我不会直接覆盖你的 `Makefile` / `Dockerfile` / `docker-compose.yml`。
-- 如需快速追加入口：
+- 参考样例在 `ops_samples/`，如需快速追加入口：
 ```bash
 python scripts/ops_patch.py          # 只在缺失时追加 make validate / make run
 make validate CONFIG=configs/xxxx.yaml
@@ -67,7 +65,7 @@ make run CONFIG=configs/xxxx.yaml
 如果需要手动构建镜像，请使用：
 ```bash
 docker build -f Dockerfile.worker -t ai-briefing:latest .
-docker run --rm --env-file .env   -v $(pwd)/configs:/app/configs   -v $(pwd)/prompts:/app/prompts   -v $(pwd)/schemas:/app/schemas   -v $(pwd)/output:/app/output   ai-briefing:latest --config configs/twitter_dev_tools.yaml
+docker run --rm --env-file .env   -v $(pwd)/configs:/app/configs   -v $(pwd)/prompts:/app/prompts   -v $(pwd)/schemas:/app/schemas   -v $(pwd)/output:/app/output   ai-briefing:latest --config configs/ai-briefing-twitter-list.yaml
 ```
 若 compose 中已指定 dockerfile 路径，继续沿用你现有配置即可。
 
@@ -75,13 +73,12 @@ docker run --rm --env-file .env   -v $(pwd)/configs:/app/configs   -v $(pwd)/pro
 ## 入口与命令（已追加统一目标）
 - 已在你现有 Makefile 中追加：
   - `make validate`：校验 `$(CONFIG)` 与 `schemas/config.schema.json`
-  - `make run`：调用 `cli_generate_briefing.py --config $(CONFIG)`
+  - `make run`：调用 `cli.py --config $(CONFIG)`
 - 变量：
-  - `PY`（默认 `python3`）、`CONFIG`（默认 `configs/twitter_dev_tools.yaml`）
+  - `PY`（默认 `python3`）、`CONFIG`（默认 `configs/ai-briefing-twitter-list.yaml`）
 - 覆盖示例：
 ```bash
-make validate CONFIG=configs/hackernews_daily.yaml
-make run CONFIG=configs/twitter_dev_tools.yaml
+make validate CONFIG=configs/ai-briefing-hackernews.yaml
+make run CONFIG=configs/ai-briefing-twitter-list.yaml
 ```
-
 

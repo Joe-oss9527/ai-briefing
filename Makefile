@@ -1,4 +1,5 @@
-CONFIG ?= configs/twitter_dev_tools.yaml
+
+CONFIG ?= configs/ai-briefing-twitter-list.yaml
 PY ?= python3
 
 # AI-Briefing 便捷命令
@@ -89,7 +90,6 @@ check-services:
 	@echo "🔍 检查服务健康状态..."
 	@echo -n "  TEI (嵌入服务): "
 	@curl -s http://localhost:8080/health > /dev/null 2>&1 && echo "✅ 正常" || echo "❌ 异常"
-	@echo -n "  Ollama (LLM服务): "
 	@curl -s http://localhost:11434/api/tags > /dev/null 2>&1 && echo "✅ 正常" || echo "❌ 异常"
 	@echo -n "  RSSHub (数据源): "
 	@curl -s http://localhost:1200/healthz > /dev/null 2>&1 && echo "✅ 正常" || echo "❌ 异常"
@@ -102,11 +102,11 @@ hn:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker orchestrator.py --config configs/hackernews_daily.yaml
+	@docker compose run --rm worker orchestrator.py --config configs/ai-briefing-hackernews.yaml
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
-	@echo "📁 输出位置: out/hackernews_daily/"
-	@ls -lht out/hackernews_daily/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+	@echo "📁 输出位置: out/ai-briefing-hackernews/"
+	@ls -lht out/ai-briefing-hackernews/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
 
 twitter:
 	@echo "======================================"
@@ -114,11 +114,11 @@ twitter:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker orchestrator.py --config configs/twitter_dev_tools.yaml
+	@docker compose run --rm worker orchestrator.py --config configs/ai-briefing-twitter-list.yaml
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
-	@echo "📁 输出位置: out/twitter_dev_tools/"
-	@ls -lht out/twitter_dev_tools/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
+	@ls -lht out/ai-briefing-twitter-list/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
 
 reddit:
 	@echo "======================================"
@@ -126,11 +126,11 @@ reddit:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker orchestrator.py --config configs/reddit_gamedev.yaml
+	@docker compose run --rm worker orchestrator.py --config configs/ai-briefing-reddit.yaml
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
-	@echo "📁 输出位置: out/reddit_gamedev/"
-	@ls -lht out/reddit_gamedev/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+	@echo "📁 输出位置: out/ai-briefing-reddit/"
+	@ls -lht out/ai-briefing-reddit/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
 
 all:
 	@echo "======================================"
@@ -155,34 +155,34 @@ show:
 	@echo "======================================"
 	@echo ""
 	@echo "📁 Hacker News:"
-	@ls -lht out/hackernews_daily/*.md 2>/dev/null | head -3 || echo "   暂无文件"
+	@ls -lht out/ai-briefing-hackernews/*.md 2>/dev/null | head -3 || echo "   暂无文件"
 	@echo ""
 	@echo "📁 Twitter Dev Tools:"
-	@ls -lht out/twitter_dev_tools/*.md 2>/dev/null | head -3 || echo "   暂无文件"
+	@ls -lht out/ai-briefing-twitter-list/*.md 2>/dev/null | head -3 || echo "   暂无文件"
 	@echo ""
 	@echo "📁 Reddit GameDev:"
-	@ls -lht out/reddit_gamedev/*.md 2>/dev/null | head -3 || echo "   暂无文件"
+	@ls -lht out/ai-briefing-reddit/*.md 2>/dev/null | head -3 || echo "   暂无文件"
 
 view-hn:
 	@echo "======================================"
 	@echo "📖 Hacker News 最新摘要"
 	@echo "======================================"
 	@echo ""
-	@cat out/hackernews_daily/$$(ls -t out/hackernews_daily/*.md 2>/dev/null | head -1 | xargs basename) 2>/dev/null || echo "暂无内容"
+	@cat out/ai-briefing-hackernews/$$(ls -t out/ai-briefing-hackernews/*.md 2>/dev/null | head -1 | xargs basename) 2>/dev/null || echo "暂无内容"
 
 view-twitter:
 	@echo "======================================"
 	@echo "📖 Twitter Dev Tools 最新摘要"
 	@echo "======================================"
 	@echo ""
-	@cat out/twitter_dev_tools/$$(ls -t out/twitter_dev_tools/*.md 2>/dev/null | head -1 | xargs basename) 2>/dev/null || echo "暂无内容"
+	@cat out/ai-briefing-twitter-list/$$(ls -t out/ai-briefing-twitter-list/*.md 2>/dev/null | head -1 | xargs basename) 2>/dev/null || echo "暂无内容"
 
 view-reddit:
 	@echo "======================================"
 	@echo "📖 Reddit GameDev 最新摘要"
 	@echo "======================================"
 	@echo ""
-	@cat out/reddit_gamedev/$$(ls -t out/reddit_gamedev/*.md 2>/dev/null | head -1 | xargs basename) 2>/dev/null || echo "暂无内容"
+	@cat out/ai-briefing-reddit/$$(ls -t out/ai-briefing-reddit/*.md 2>/dev/null | head -1 | xargs basename) 2>/dev/null || echo "暂无内容"
 
 # ========== 日志和维护 ==========
 
@@ -305,7 +305,7 @@ setup:
 test-config:
 	@echo "🔍 验证配置文件..."
 	@docker compose run --rm --no-deps worker python -c "from utils import validate_config; import yaml; import sys; \
-		configs = ['configs/hackernews_daily.yaml', 'configs/twitter_dev_tools.yaml', 'configs/reddit_gamedev.yaml']; \
+		configs = ['configs/ai-briefing-hackernews.yaml', 'configs/ai-briefing-twitter-list.yaml', 'configs/ai-briefing-reddit.yaml']; \
 		for c in configs: \
 			print(f'Checking {c}...'); \
 			with open(c) as f: cfg = yaml.safe_load(f); \
@@ -320,4 +320,5 @@ validate:
 	$(PY) scripts/validate_config.py --config $(CONFIG)
 
 run:
-	$(PY) cli_generate_briefing.py --config $(CONFIG)
+	$(PY) cli.py --config $(CONFIG)
+

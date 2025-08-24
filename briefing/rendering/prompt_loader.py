@@ -1,4 +1,5 @@
-# ai_briefing/prompt_loader.py
+
+# briefing/rendering/prompt_loader.py
 import json, yaml
 from jinja2 import Environment
 
@@ -12,3 +13,5 @@ def render_prompt(briefing_title: str, bundles, prompt_file: str) -> str:
     sys_part = sys_t.render(briefing_title=briefing_title, bundles_json=bundles_json)
     task_part = task_t.render(briefing_title=briefing_title, bundles_json=bundles_json)
     return (sys_part + "\n\n" + task_part).strip() + "\n"
+
+

@@ -1,4 +1,5 @@
-# ai_briefing/md_renderer.py
+
+# briefing/rendering/markdown.py
 from typing import Dict, List
 
 def render_md(data: Dict) -> str:
@@ -18,3 +19,5 @@ def render_md(data: Dict) -> str:
             lines.append(f"\n{links_line}\n")
         lines.append("")
     return "\n".join(lines).strip() + "\n"
+
+

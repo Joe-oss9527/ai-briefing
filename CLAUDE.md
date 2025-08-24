@@ -1,10 +1,11 @@
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Repository Overview
 
-AI-Briefing is an extensible briefing generation platform that aggregates content from multiple sources (Twitter, RSS, Reddit, Hacker News), processes it through an ML pipeline (embedding, deduplication, clustering, reranking), and generates summaries using LLMs (Gemini/Ollama).
+AI-Briefing is an extensible briefing generation platform that aggregates content from multiple sources (Twitter, RSS, Reddit, Hacker News), processes it through an ML pipeline (embedding, deduplication, clustering, reranking), and generates summaries using LLMs (Gemini/OpenAI).
 
 ## Key Commands
 
@@ -56,14 +57,12 @@ make clean-output  # Clean files older than 7 days
 
 ### Direct Docker Commands
 ```bash
-# Start all services (RSSHub, Ollama, Redis, Browserless)
 # Note: TEI now runs locally with Metal GPU acceleration
 docker compose up -d --build
 
 # Run a briefing task
-docker compose run --rm worker orchestrator.py --config configs/hackernews_daily.yaml
+docker compose run --rm worker orchestrator.py --config configs/ai-briefing-hackernews.yaml
 
-# Pre-pull Ollama models (optional, auto-pulls on first use)
 curl http://localhost:11434/api/pull -d '{"name":"qwen2.5:7b-instruct"}'
 curl http://localhost:11434/api/pull -d '{"name":"llama3.1:8b-instruct"}'
 
@@ -86,11 +85,10 @@ docker compose down
 # Check service health
 make check-services  # Or use direct commands:
 curl http://localhost:8080/health     # TEI embedding service
-curl http://localhost:11434/api/tags  # Ollama models
 curl http://localhost:1200/healthz    # RSSHub
 
 # Run with debug logging
-LOG_LEVEL=DEBUG docker compose run --rm worker orchestrator.py --config configs/hackernews_daily.yaml
+LOG_LEVEL=DEBUG docker compose run --rm worker orchestrator.py --config configs/ai-briefing-hackernews.yaml
 
 # Test individual adapters
 docker compose run --rm worker python -c "from adapters import hackernews_adapter; print(hackernews_adapter.fetch({'hn_story_type': 'top', 'hn_limit': 5}))"
@@ -104,7 +102,6 @@ make shell  # Or: docker compose run --rm worker /bin/bash
 ### Core Flow
 1. **Orchestrator** (`orchestrator.py`) - Entry point that coordinates the entire pipeline
    - Validates config via JSON Schema
-   - Waits for services (TEI/Ollama/RSSHub) to be healthy
    - Manages run_id for distributed tracing
    - Implements "empty briefing" strategy (skip file generation if no content)
 
@@ -122,7 +119,6 @@ make shell  # Or: docker compose run --rm worker /bin/bash
    - Returns bundles sorted by cluster size
 
 4. **Summarization** (`summarizer.py`) - LLM interaction layer
-   - Dual provider support: Gemini (cloud) or Ollama (local)
    - Template-based prompt construction (potential injection risk - use caution)
    - Structured JSON + Markdown output generation
    - Returns `None` for empty briefings to trigger skip logic
@@ -155,7 +151,6 @@ make shell  # Or: docker compose run --rm worker /bin/bash
   - **NEW**: Runs locally with Metal GPU acceleration for Apple Silicon
   - Model: `sentence-transformers/all-MiniLM-L6-v2` (optimized for compatibility)
   - Installation: Use `make install-tei` for native compilation with Metal support
-- **Ollama**: Required if using local LLM models
 - **RSSHub**: Only needed for Twitter sources
 - **Redis**: Cache backend for RSSHub
 - **Browserless**: Headless browser for RSSHub scraping
@@ -187,8 +182,6 @@ processing:
   sim_near_dup: 0.9
   reranker_model: "BAAI/bge-reranker-v2-m3"
 summarization:
-  llm_provider: "ollama"
-  ollama_model: "llama3.1:8b"
   prompt_file: "prompts/daily_briefing_multisource.yaml"
   target_item_count: 10
 output:
@@ -275,7 +268,6 @@ docker compose logs tei --tail=20
 
 # Test service health manually
 curl http://localhost:8080/health     # TEI
-curl http://localhost:11434/api/tags  # Ollama
 curl http://localhost:1200/healthz    # RSSHub
 
 # Clean restart all services

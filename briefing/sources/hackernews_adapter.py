@@ -1,8 +1,9 @@
+
 import time
 import datetime as dt
 import requests
 from typing import List, Dict, Any
-from utils import clean_text, get_logger
+from briefing.utils import clean_text, get_logger
 
 logger = get_logger(__name__)
 
@@ -58,3 +59,4 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     logger.info("hackernews_adapter fetched_items=%d type=%s", len(items), story_type)
     return items
+

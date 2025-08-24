@@ -1,3 +1,4 @@
+
 # AI-Briefing - 智能简报生成平台
 
 [![Docker](https://img.shields.io/badge/Docker-20.10%2B-blue)](https://www.docker.com/)
@@ -5,7 +6,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-AI-Briefing 是一个可扩展的智能简报生成平台，通过 ML 驱动的处理管道从多个数据源（Twitter、Reddit、Hacker News）聚合内容，利用 LLM（Gemini/Ollama）自动生成高质量摘要。
+AI-Briefing 是一个可扩展的智能简报生成平台，通过 ML 驱动的处理管道从多个数据源（Twitter、Reddit、Hacker News）聚合内容，利用 LLM（Gemini/OpenAI）自动生成高质量摘要。
 
 ## ✨ 核心特性
 
@@ -73,7 +74,6 @@ make view-reddit   # 查看 Reddit 摘要
 REDDIT_CLIENT_ID=your_reddit_client_id
 REDDIT_CLIENT_SECRET=your_reddit_client_secret
 
-# Gemini LLM (可选，默认使用 Ollama)
 GEMINI_API_KEY=your_gemini_api_key
 
 # Telegram 推送 (可选)
@@ -102,8 +102,6 @@ processing:
   min_cluster_size: 3
   sim_near_dup: 0.90
 summarization:
-  llm_provider: "ollama"  # 或 "gemini"
-  ollama_model: "qwen2.5:7b-instruct"
 output:
   formats: ["md", "json", "html"]
 ```
@@ -126,12 +124,11 @@ graph LR
 - **Orchestrator**: 任务编排器，管理整个处理流程
 - **Data Adapters**: 统一的数据源接口 (HN/Twitter/Reddit)
 - **Processing Pipeline**: ML 驱动的内容处理管道
-- **Summarizer**: LLM 交互层 (支持 Gemini/Ollama)
+- **Summarizer**: LLM 交互层 (支持 Gemini/OpenAI)
 - **Publisher**: 多渠道内容分发器
 
 ### 服务架构
 - **TEI**: 本地 Metal GPU 加速的文本嵌入服务
-- **Ollama**: 本地 LLM 推理服务
 - **RSSHub**: Twitter 数据代理服务
 - **Redis**: 缓存后端
 - **Browserless**: 无头浏览器服务
@@ -141,7 +138,7 @@ graph LR
 生成的简报文件位于 `out/<briefing_id>/` 目录：
 
 ```
-out/hackernews_daily/
+out/ai-briefing-hackernews/
 ├── briefing_20250823T120000Z.md    # Markdown 格式
 ├── briefing_20250823T120000Z.json  # 结构化数据
 └── briefing_20250823T120000Z.html  # HTML 格式
@@ -207,7 +204,6 @@ docker compose version  # 应显示 v2.x.x
 
 - [Text Embeddings Inference](https://github.com/huggingface/text-embeddings-inference) - 高性能文本嵌入服务
 - [RSSHub](https://github.com/DIYgod/RSSHub) - 万物皆可 RSS
-- [Ollama](https://github.com/ollama/ollama) - 本地 LLM 运行时
 - [HDBSCAN](https://github.com/scikit-learn-contrib/hdbscan) - 基于密度的聚类算法
 
 ---

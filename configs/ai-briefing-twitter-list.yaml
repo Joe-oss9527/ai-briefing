@@ -1,13 +1,12 @@
-briefing_id: example_id
-briefing_title: 示例简报标题
+briefing_id: ai-briefing-twitter-list
+briefing_title: AI 快讯 · Twitter
 source:
-  type: rss
-  urls:
-  - https://example.com/feed.xml
+  type: twitter_list
+  id: '1933036352834281792'
 processing:
   time_window_hours: 24
-  min_cluster_size: 3
-  sim_near_dup: 0.9
+  min_cluster_size: 2
+  sim_near_dup: 0.92
   reranker_model: BAAI/bge-reranker-v2-m3
   initial_topk: 1000
   max_candidates_per_cluster: 300
@@ -21,11 +20,12 @@ summarization:
       base_url: ${OPENAI_BASE_URL}
     gemini:
       api_version: v1
+  openai_model: gpt-4o-mini
   llm_provider: gemini
   gemini_model: gemini-2.5-flash
   target_item_count: 10
 output:
-  dir: out/example_id
+  dir: out/ai-briefing-twitter-list
   formats:
   - md
   - json
@@ -34,14 +34,9 @@ output:
     chat_id: ''
     parse_mode: None
     chunk_size: 3500
-    bot_token_env: TELEGRAM_BOT_TOKEN
   github_backup:
     enabled: false
     repo_url: ''
     repo_dir: .
     branch: main
-    author_name_env: GIT_AUTHOR_NAME
-    author_email_env: GIT_AUTHOR_EMAIL
-    token_env: GITHUB_TOKEN
-    commit_message_prefix: briefing
-    pathspec: ''
+    commit_message_prefix: ai-briefing-twitter-list

@@ -1,3 +1,4 @@
+
 #!/bin/bash
 # Simple test runner for AI-Briefing platform
 
@@ -16,3 +17,4 @@ else
     echo "❌ Some tests failed. Please check the output above."
     exit 1
 fi
+

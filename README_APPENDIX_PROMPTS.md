@@ -1,3 +1,4 @@
+
 # 提示词历史对比与迁移附录
 
 本附录记录从**旧的双文件提示词**（`daily_briefing_multisource.yaml` + `daily_briefing_multisource.yaml`）迁移到**统一 YAML 提示词**
@@ -33,7 +34,6 @@ provider_options:
     # use_vertex: true
     # project: "your-gcp-project-id"
     # location: "us-central1"
-  ollama:
     host: "http://127.0.0.1:11434"
 ```
 
@@ -44,3 +44,4 @@ provider_options:
 ## 5. 回滚策略（如需）
 - 直接切换 `prompt_file` 指向你保存的旧 YAML 版本（不是 `.txt`），保持统一渲染方式；
 - **不建议**恢复到 `.txt` 双文件与代码拼接模式，因为这会重新引入隐性不一致。
+

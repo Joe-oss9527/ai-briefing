@@ -142,14 +142,10 @@
           "type": "string",
           "enum": [
             "gemini",
-            "ollama",
             "openai"
           ]
         },
         "gemini_model": {
-          "type": "string"
-        },
-        "ollama_model": {
           "type": "string"
         },
         "target_item_count": {
@@ -177,7 +173,8 @@
           "minimum": 0
         },
         "provider_options": {
-          "type": "object"
+          "type": "object",
+          "properties": {}
         }
       }
     },

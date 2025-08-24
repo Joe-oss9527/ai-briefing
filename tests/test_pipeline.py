@@ -1,3 +1,4 @@
+
 """Tests for the processing pipeline."""
 
 import pytest
@@ -8,8 +9,8 @@ from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline import _near_duplicate_mask, _cluster
-from utils import clean_text, validate_config
+from briefing.pipeline import _near_duplicate_mask, _cluster
+from briefing.utils import clean_text, validate_config
 
 
 class TestDeduplication:
@@ -119,8 +120,8 @@ class TestConfigValidation:
                 "reranker_model": "BAAI/bge-reranker-v2-m3"
             },
             "summarization": {
-                "llm_provider": "ollama",
-                "ollama_model": "llama3.1:8b",
+                "llm_provider": "gemini",
+                "gemini_model": "gemini-1.5-flash",
                 "prompt_file": "prompts/daily_briefing_multisource.yaml",
                 "prompt_file": "prompts/daily_briefing_multisource.yaml",
                 "target_item_count": 10
@@ -154,7 +155,7 @@ class TestTimeWindowFiltering:
     
     def test_recent_items_kept(self):
         """Test that recent items are kept."""
-        from pipeline import run_processing_pipeline
+        from briefing.pipeline import run_processing_pipeline
         
         now = datetime.now(timezone.utc)
         recent = now - timedelta(hours=12)
@@ -199,3 +200,4 @@ class TestTimeWindowFiltering:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+

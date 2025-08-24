@@ -1,9 +1,10 @@
+
 import os
 import requests
 from email.utils import parsedate_to_datetime
 from typing import List, Dict, Any
 
-from utils import clean_text, now_utc, get_logger
+from briefing.utils import clean_text, now_utc, get_logger
 
 RSSHUB_ORIGIN = os.getenv("RSSHUB_ORIGIN", "http://rsshub:1200")
 logger = get_logger(__name__)
@@ -45,3 +46,4 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     logger.info("twitter_list_adapter fetched_items=%d", len(items))
     return items
+

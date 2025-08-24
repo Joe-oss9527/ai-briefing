@@ -1,6 +1,7 @@
+
 import feedparser
 from typing import List, Dict, Any
-from utils import clean_text, parse_datetime_safe, get_logger
+from briefing.utils import clean_text, parse_datetime_safe, get_logger
 
 logger = get_logger(__name__)
 
@@ -31,3 +32,4 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     logger.info("rss_adapter fetched_items=%d", len(items))
     return items
+

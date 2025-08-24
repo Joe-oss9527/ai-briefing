@@ -1,9 +1,10 @@
+
 import os
 import subprocess
 import requests
 from typing import Optional
 
-from utils import get_logger, redact_secrets
+from briefing.utils import get_logger, redact_secrets
 
 logger = get_logger(__name__)
 
@@ -122,3 +123,4 @@ def maybe_github_backup(output_dir: str, output_cfg: dict, briefing_id: str, run
         logger.error("github_backup push failed: %s", e)
         raise
     logger.info("github_backup: pushed branch=%s pathspec=%s", branch, pathspec)
+

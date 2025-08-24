@@ -1,3 +1,4 @@
+
 import os
 import argparse
 import time
@@ -6,28 +7,25 @@ import uuid
 import requests
 from typing import Dict, Any, List
 
-from adapters import twitter_list_adapter, rss_adapter, reddit_adapter, hackernews_adapter
-from pipeline import run_processing_pipeline
-from summarizer import generate_summary
-from publisher import maybe_publish_telegram, maybe_github_backup
-from utils import write_output, validate_config, wait_for_service, get_logger
+from briefing.sources import twitter_list_adapter, rss_adapter, reddit_adapter, hackernews_adapter
+from briefing.pipeline import run_processing_pipeline
+from briefing.summarizer import generate_summary
+from briefing.publisher import maybe_publish_telegram, maybe_github_backup
+from briefing.utils import write_output, validate_config, wait_for_service, get_logger
 
 logger = get_logger(__name__)
 
 def _wait_infra(source_type=None):
     """Wait for infrastructure services to be ready."""
     tei = os.getenv("TEI_ORIGIN", "http://host.docker.internal:8080") + "/health"
-    ollama = os.getenv("OLLAMA_ORIGIN", "http://ollama:11434") + "/api/tags"
     
     # Only check RSSHub if actually needed
     if source_type == "twitter_list":
         rsshub = os.getenv("RSSHUB_ORIGIN", "http://rsshub:1200") + "/healthz"
         wait_for_service(rsshub)
     
-    # TEI and Ollama are always critical
+    # TEI is critical
     wait_for_service(tei)
-    wait_for_service(ollama)
-
 def _fetch_items(source_cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Fetch items from configured source."""
     t = source_cfg["type"]
@@ -94,3 +92,29 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+def run_once(config_path: str):
+    import yaml, time, uuid
+    with open(config_path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+    validate_config(cfg)
+    briefing_id = cfg["briefing_id"]
+    source_type = cfg["source"]["type"]
+    logger.info("config loaded briefing_id=%s title=%s source=%s", briefing_id, cfg["briefing_title"], source_type)
+    _wait_infra(source_type)
+    t0 = time.monotonic()
+    raw_items = _fetch_items(cfg["source"])
+    logger.info("fetched items=%d took_ms=%d", len(raw_items), int((time.monotonic()-t0)*1000))
+    t1 = time.monotonic()
+    bundles = run_processing_pipeline(raw_items, cfg["processing"])
+    logger.info("processed bundles=%d took_ms=%d", len(bundles), int((time.monotonic()-t1)*1000))
+    md, js = generate_summary(bundles, cfg)
+    if md and js:
+        write_output(md, js, cfg["output"])
+        maybe_publish_telegram(md, cfg["output"])
+        maybe_github_backup(cfg["output"])
+        logger.info("OK: briefing generated and published.")
+    else:
+        logger.info("No content to publish.")

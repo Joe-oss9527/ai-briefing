@@ -1,3 +1,4 @@
+
 # prompts/daily_briefing_multisource.yaml
 # 统一 System+Task 提示词（Jinja 占位）。仅输出 JSON，Markdown 由本地渲染。
 
@@ -53,3 +54,5 @@ task: |
   - JSON 能被标准解析器解析；键顺序为 `title`、`date`、`topics`。
   - 每个主题 1–4 条要点；每条仅 1 个链接并置于句末；`links` 去重。
   - 不引入输入之外的事实；不输出除 JSON 以外的内容。
+
+

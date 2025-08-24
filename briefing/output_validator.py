@@ -1,4 +1,5 @@
-# ai_briefing/output_validator.py
+
+# briefing/output_validator.py
 import json
 from jsonschema import validate, Draft202012Validator
 from jsonschema.exceptions import ValidationError
@@ -10,3 +11,5 @@ def validate_briefing(obj: dict, schema_str: str):
     except ValidationError as e:
         path = list(e.path)
         raise ValueError(f"Briefing JSON invalid: {e.message} at {path}") from e
+
+
