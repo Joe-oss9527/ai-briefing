@@ -15,11 +15,25 @@ processing:
   max_candidates_per_cluster: 300
 
 summarization:
+  prompt_file: "prompts/daily_briefing_multisource.yaml"
+  temperature: 0.2
+  timeout: 600
+  retries: 1
+  provider_options:
+    openai:
+      base_url: "${OPENAI_BASE_URL}"
+      # http_proxy: "http://127.0.0.1:7890"
+      # https_proxy: "http://127.0.0.1:7890"
+    gemini:
+      # use_vertex: true
+      # project: "your-gcp-project-id"
+      # location: "us-central1"
+      api_version: "v1"
+    ollama:
+      host: "http://127.0.0.1:11434"
   llm_provider: "gemini"       # gemini | ollama
   gemini_model: "gemini-2.5-flash"
   ollama_model: "qwen2.5:7b-instruct"
-  prompt_system: "prompts/system_common.txt"
-  prompt_template: "prompts/template_daily.txt"
   target_item_count: 10
 
 output:

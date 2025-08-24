@@ -112,8 +112,8 @@ class TestEmptyBriefingHandling:
         # Test with empty bundles
         md, js = generate_summary([], {"summarization": {
             "llm_provider": "gemini",
-            "prompt_system": "prompts/system_common.txt",
-            "prompt_template": "prompts/template_daily.txt",
+            "prompt_file": "prompts/daily_briefing_multisource.yaml",
+            "prompt_file": "prompts/daily_briefing_multisource.yaml",
             "target_item_count": 10
         }})
         

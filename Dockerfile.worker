@@ -1,3 +1,4 @@
+
 FROM python:3.11-slim
 
 WORKDIR /workspace
@@ -38,3 +39,4 @@ ENV HF_HOME="/home/appuser/.cache/huggingface"
 ENV HOME="/home/appuser"
 
 ENTRYPOINT ["python"]
+

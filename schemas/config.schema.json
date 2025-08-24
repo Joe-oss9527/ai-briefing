@@ -2,78 +2,279 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "BriefingConfig",
   "type": "object",
-  "required": ["briefing_id", "briefing_title", "source", "processing", "summarization", "output"],
+  "required": [
+    "briefing_id",
+    "briefing_title",
+    "source",
+    "processing",
+    "summarization",
+    "output"
+  ],
   "properties": {
-    "briefing_id": { "type": "string", "minLength": 1 },
-    "briefing_title": { "type": "string", "minLength": 1 },
+    "briefing_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "briefing_title": {
+      "type": "string",
+      "minLength": 1
+    },
     "source": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": { "type": "string", "enum": ["twitter_list", "rss", "reddit", "hackernews"] },
-        "id": { "type": "string" },
-        "urls": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-        "subreddits": { "type": "array", "items": { "type": "string" } },
-        "sort_by": { "type": "string", "enum": ["hot", "new", "top", "rising"] },
-        "time_window": { "type": "string", "enum": ["hour", "day", "week", "month", "year", "all"] },
-        "limit_per_subreddit": { "type": "integer", "minimum": 1 },
-        "hn_story_type": { "type": "string", "enum": ["top", "new", "best"], "default": "top" },
-        "hn_limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 50 }
+        "type": {
+          "type": "string",
+          "enum": [
+            "twitter_list",
+            "rss",
+            "reddit",
+            "hackernews"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "subreddits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": [
+            "hot",
+            "new",
+            "top",
+            "rising"
+          ]
+        },
+        "time_window": {
+          "type": "string",
+          "enum": [
+            "hour",
+            "day",
+            "week",
+            "month",
+            "year",
+            "all"
+          ]
+        },
+        "limit_per_subreddit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "hn_story_type": {
+          "type": "string",
+          "enum": [
+            "top",
+            "new",
+            "best"
+          ],
+          "default": "top"
+        },
+        "hn_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 50
+        }
       },
       "additionalProperties": true
     },
     "processing": {
       "type": "object",
-      "required": ["time_window_hours", "min_cluster_size", "sim_near_dup", "reranker_model"],
+      "required": [
+        "time_window_hours",
+        "min_cluster_size",
+        "sim_near_dup",
+        "reranker_model"
+      ],
       "properties": {
-        "time_window_hours": { "type": "integer", "minimum": 1 },
-        "min_cluster_size": { "type": "integer", "minimum": 2 },
-        "sim_near_dup": { "type": "number", "minimum": 0, "maximum": 1 },
-        "reranker_model": { "type": "string", "minLength": 1 },
-        "initial_topk": { "type": "integer", "minimum": 10, "default": 1000 },
-        "max_candidates_per_cluster": { "type": "integer", "minimum": 10, "default": 300 }
+        "time_window_hours": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_cluster_size": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "sim_near_dup": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reranker_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_topk": {
+          "type": "integer",
+          "minimum": 10,
+          "default": 1000
+        },
+        "max_candidates_per_cluster": {
+          "type": "integer",
+          "minimum": 10,
+          "default": 300
+        }
       }
     },
     "summarization": {
       "type": "object",
-      "required": ["llm_provider", "prompt_system", "prompt_template", "target_item_count"],
+      "required": [
+        "llm_provider",
+        "prompt_file",
+        "prompt_system",
+        "prompt_template",
+        "target_item_count"
+      ],
       "properties": {
-        "llm_provider": { "type": "string", "enum": ["gemini", "ollama"] },
-        "gemini_model": { "type": "string" },
-        "ollama_model": { "type": "string" },
-        "prompt_system": { "type": "string" },
-        "prompt_template": { "type": "string" },
-        "target_item_count": { "type": "integer", "minimum": 1 }
+        "llm_provider": {
+          "type": "string",
+          "enum": [
+            "gemini",
+            "ollama",
+            "openai"
+          ]
+        },
+        "gemini_model": {
+          "type": "string"
+        },
+        "ollama_model": {
+          "type": "string"
+        },
+        "target_item_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "openai_model": {
+          "type": "string"
+        },
+        "prompt_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "provider_options": {
+          "type": "object"
+        }
       }
     },
     "output": {
       "type": "object",
-      "required": ["dir", "formats"],
+      "required": [
+        "dir",
+        "formats"
+      ],
       "properties": {
-        "dir": { "type": "string", "minLength": 1 },
-        "formats": { "type": "array", "items": { "type": "string", "enum": ["md", "json", "html"] } },
+        "dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "formats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "md",
+              "json",
+              "html"
+            ]
+          }
+        },
         "telegram": {
           "type": "object",
           "properties": {
-            "enabled": { "type": "boolean", "default": false },
-            "chat_id": { "type": "string" },
-            "parse_mode": { "type": "string", "enum": ["None", "Markdown", "MarkdownV2", "HTML"], "default": "None" },
-            "chunk_size": { "type": "integer", "minimum": 500, "maximum": 4000, "default": 3500 },
-            "bot_token_env": { "type": "string", "default": "TELEGRAM_BOT_TOKEN" }
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "chat_id": {
+              "type": "string"
+            },
+            "parse_mode": {
+              "type": "string",
+              "enum": [
+                "None",
+                "Markdown",
+                "MarkdownV2",
+                "HTML"
+              ],
+              "default": "None"
+            },
+            "chunk_size": {
+              "type": "integer",
+              "minimum": 500,
+              "maximum": 4000,
+              "default": 3500
+            },
+            "bot_token_env": {
+              "type": "string",
+              "default": "TELEGRAM_BOT_TOKEN"
+            }
           }
         },
         "github_backup": {
           "type": "object",
           "properties": {
-            "enabled": { "type": "boolean", "default": false },
-            "repo_url": { "type": "string" },
-            "repo_dir": { "type": "string", "default": "." },
-            "branch": { "type": "string", "default": "main" },
-            "author_name_env": { "type": "string", "default": "GIT_AUTHOR_NAME" },
-            "author_email_env": { "type": "string", "default": "GIT_AUTHOR_EMAIL" },
-            "token_env": { "type": "string", "default": "GITHUB_TOKEN" },
-            "commit_message_prefix": { "type": "string", "default": "briefing" },
-            "pathspec": { "type": "string", "default": "" }
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "repo_url": {
+              "type": "string"
+            },
+            "repo_dir": {
+              "type": "string",
+              "default": "."
+            },
+            "branch": {
+              "type": "string",
+              "default": "main"
+            },
+            "author_name_env": {
+              "type": "string",
+              "default": "GIT_AUTHOR_NAME"
+            },
+            "author_email_env": {
+              "type": "string",
+              "default": "GIT_AUTHOR_EMAIL"
+            },
+            "token_env": {
+              "type": "string",
+              "default": "GITHUB_TOKEN"
+            },
+            "commit_message_prefix": {
+              "type": "string",
+              "default": "briefing"
+            },
+            "pathspec": {
+              "type": "string",
+              "default": ""
+            }
           }
         }
       }

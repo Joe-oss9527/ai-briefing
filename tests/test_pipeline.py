@@ -121,8 +121,8 @@ class TestConfigValidation:
             "summarization": {
                 "llm_provider": "ollama",
                 "ollama_model": "llama3.1:8b",
-                "prompt_system": "prompts/system_common.txt",
-                "prompt_template": "prompts/template_daily.txt",
+                "prompt_file": "prompts/daily_briefing_multisource.yaml",
+                "prompt_file": "prompts/daily_briefing_multisource.yaml",
                 "target_item_count": 10
             },
             "output": {

@@ -1,7 +1,11 @@
+CONFIG ?= configs/twitter_dev_tools.yaml
+PY ?= python3
+
 # AI-Briefing 便捷命令
 # 使用: make [命令]
 
-.PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit logs clean-output check-services check-deps install-deps install-tei clean-tei download-models setup
+.PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit logs clean-output check-services check-deps install-deps install-tei clean-tei download-models setup validate run
+
 
 # 默认显示帮助
 help:
@@ -311,3 +315,9 @@ test-config:
 shell:
 	@echo "🐚 进入 Worker 容器 Shell..."
 	@docker compose run --rm --no-deps worker /bin/bash
+
+validate:
+	$(PY) scripts/validate_config.py --config $(CONFIG)
+
+run:
+	$(PY) cli_generate_briefing.py --config $(CONFIG)
