@@ -30,7 +30,7 @@ make check-services # Health check all services
 
 # Data collection (with progress indicators)
 make hn            # Collect Hacker News
-make twitter       # Collect Twitter Dev Tools
+make twitter       # Collect AI 快讯 · Twitter
 make reddit        # Collect Reddit GameDev
 make all           # Collect all sources in parallel
 

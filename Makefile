@@ -24,14 +24,14 @@ help:
 	@echo ""
 	@echo "数据收集:"
 	@echo "  make hn            - 收集 Hacker News 摘要"
-	@echo "  make twitter       - 收集 Twitter Dev Tools 摘要"
+	@echo "  make twitter       - 收集 AI 快讯 · Twitter 摘要"
 	@echo "  make reddit        - 收集 Reddit GameDev 摘要"
 	@echo "  make all           - 并行收集所有数据源"
 	@echo ""
 	@echo "查看输出:"
 	@echo "  make show          - 显示最新生成的文件"
 	@echo "  make view-hn       - 查看最新 HN 摘要内容"
-	@echo "  make view-twitter  - 查看最新 Twitter 摘要内容"
+	@echo "  make view-twitter  - 查看最新 AI 快讯 · Twitter 摘要内容"
 	@echo "  make view-reddit   - 查看最新 Reddit 摘要内容"
 	@echo ""
 	@echo "安装和配置:"
@@ -114,7 +114,7 @@ hn:
 
 twitter:
 	@echo "======================================"
-	@echo "🐦 开始收集 Twitter Dev Tools 摘要"
+	@echo "🐦 开始收集 AI 快讯 · Twitter 摘要"
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
@@ -161,7 +161,7 @@ show:
 	@echo "📁 Hacker News:"
 	@ls -lht out/ai-briefing-hackernews/*.md 2>/dev/null | head -3 || echo "   暂无文件"
 	@echo ""
-	@echo "📁 Twitter Dev Tools:"
+	@echo "📁 AI 快讯 · Twitter:"
 	@ls -lht out/ai-briefing-twitter-list/*.md 2>/dev/null | head -3 || echo "   暂无文件"
 	@echo ""
 	@echo "📁 Reddit GameDev:"
@@ -176,7 +176,7 @@ view-hn:
 
 view-twitter:
 	@echo "======================================"
-	@echo "📖 Twitter Dev Tools 最新摘要"
+	@echo "📖 AI 快讯 · Twitter 最新摘要"
 	@echo "======================================"
 	@echo ""
 	@cat out/ai-briefing-twitter-list/$$(ls -t out/ai-briefing-twitter-list/*.md 2>/dev/null | head -1 | xargs basename) 2>/dev/null || echo "暂无内容"

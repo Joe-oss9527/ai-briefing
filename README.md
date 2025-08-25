@@ -35,7 +35,7 @@ make start
 ```bash
 # 收集单个数据源
 make hn            # Hacker News
-make twitter       # Twitter Dev Tools  
+make twitter       # AI 快讯 · Twitter  
 make reddit        # Reddit GameDev
 
 # 或并行收集所有数据源
