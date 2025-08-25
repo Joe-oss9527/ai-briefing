@@ -61,10 +61,8 @@ make clean-output  # Clean files older than 7 days
 docker compose up -d --build
 
 # Run a briefing task
-docker compose run --rm worker orchestrator.py --config configs/ai-briefing-hackernews.yaml
+docker compose run --rm worker cli.py --config configs/ai-briefing-hackernews.yaml
 
-curl http://localhost:11434/api/pull -d '{"name":"qwen2.5:7b-instruct"}'
-curl http://localhost:11434/api/pull -d '{"name":"llama3.1:8b-instruct"}'
 
 # Run tests
 docker compose run --rm worker pytest tests/ -v
@@ -88,7 +86,7 @@ curl http://localhost:8080/health     # TEI embedding service
 curl http://localhost:1200/healthz    # RSSHub
 
 # Run with debug logging
-LOG_LEVEL=DEBUG docker compose run --rm worker orchestrator.py --config configs/ai-briefing-hackernews.yaml
+LOG_LEVEL=DEBUG docker compose run --rm worker cli.py --config configs/ai-briefing-hackernews.yaml
 
 # Test individual adapters
 docker compose run --rm worker python -c "from adapters import hackernews_adapter; print(hackernews_adapter.fetch({'hn_story_type': 'top', 'hn_limit': 5}))"
@@ -286,7 +284,7 @@ worker:
 **Root Cause**: `docker compose run` doesn't use service network by default
 **Solution**: Use `--no-deps` flag in Makefile commands:
 ```bash
-docker compose run --rm --no-deps worker python orchestrator.py --config ...
+docker compose run --rm --no-deps worker python cli.py --config ...
 ```
 
 ### Common Docker Commands

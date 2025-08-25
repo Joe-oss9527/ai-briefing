@@ -34,7 +34,7 @@ provider_options:
     # use_vertex: true
     # project: "your-gcp-project-id"
     # location: "us-central1"
-    host: "http://127.0.0.1:11434"
+    # host: "https://generativelanguage.googleapis.com"  # Custom Gemini endpoint if needed
 ```
 
 ## 4. 失败模式与稳定性

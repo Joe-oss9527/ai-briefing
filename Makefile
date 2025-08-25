@@ -90,7 +90,6 @@ check-services:
 	@echo "🔍 检查服务健康状态..."
 	@echo -n "  TEI (嵌入服务): "
 	@curl -s http://localhost:8080/health > /dev/null 2>&1 && echo "✅ 正常" || echo "❌ 异常"
-	@curl -s http://localhost:11434/api/tags > /dev/null 2>&1 && echo "✅ 正常" || echo "❌ 异常"
 	@echo -n "  RSSHub (数据源): "
 	@curl -s http://localhost:1200/healthz > /dev/null 2>&1 && echo "✅ 正常" || echo "❌ 异常"
 
@@ -102,7 +101,7 @@ hn:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker orchestrator.py --config configs/ai-briefing-hackernews.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-hackernews.yaml
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-hackernews/"
@@ -114,7 +113,7 @@ twitter:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker orchestrator.py --config configs/ai-briefing-twitter-list.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-twitter-list.yaml
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
@@ -126,7 +125,7 @@ reddit:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker orchestrator.py --config configs/ai-briefing-reddit.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-reddit.yaml
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-reddit/"
