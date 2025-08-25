@@ -64,8 +64,11 @@ def generate_summary(bundles: List[Dict[str, Any]],
     obj["title"] = config.get("briefing_title", obj.get("title", "AI Briefing"))
     obj["date"] = obj.get("date", dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z'))
     
+    # Extract rendering config from main config
+    rendering_config = config.get("rendering", {})
+    
     # Render
-    md = render_md(obj)
+    md = render_md(obj, rendering_config)
     logger.info("Generated %d topics", len(obj["topics"]))
     
     return md, obj

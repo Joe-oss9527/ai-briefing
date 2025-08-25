@@ -18,15 +18,106 @@ TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://host.docker.internal:8080")
 LID_MODEL_PATH = os.getenv("LID_MODEL_PATH", "/workspace/lid.176.bin")
 logger = get_logger(__name__)
 
+def _normalize_text_encoding(text: str) -> str:
+    """Normalize text encoding to ensure valid UTF-8."""
+    original_text = text
+    
+    # Ensure text is a string
+    if not isinstance(text, str):
+        logger.debug("Converting non-string input to string: %s", type(text).__name__)
+        text = str(text)
+    
+    # Handle bytes input
+    if isinstance(text, bytes):
+        logger.debug("Converting bytes to UTF-8 string")
+        text = text.decode('utf-8', errors='replace')
+    
+    # Ensure proper UTF-8 encoding
+    text = text.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+    
+    if text != original_text and isinstance(original_text, str):
+        logger.debug("Text encoding normalized: %s characters changed", 
+                    sum(1 for a, b in zip(original_text[:100], text[:100]) if a != b))
+    
+    return text
+
+def _remove_invalid_escapes(text: str) -> str:
+    """Remove incomplete hex/unicode escape sequences that cause JSON parsing errors."""
+    import re
+    
+    original_text = text
+    changes = 0
+    
+    # Replace incomplete \x sequences (not followed by exactly 2 hex digits)
+    new_text = re.sub(r'\\x(?![0-9a-fA-F]{2})', ' ', text)
+    if new_text != text:
+        changes += len(re.findall(r'\\x(?![0-9a-fA-F]{2})', text))
+        text = new_text
+    
+    # Replace incomplete \u sequences (not followed by exactly 4 hex digits) 
+    new_text = re.sub(r'\\u(?![0-9a-fA-F]{4})', ' ', text)
+    if new_text != text:
+        changes += len(re.findall(r'\\u(?![0-9a-fA-F]{4})', text))
+        text = new_text
+    
+    # Replace literal backslashes that might cause issues
+    backslash_count = text.count('\\')
+    text = text.replace('\\', ' ')
+    if backslash_count > 0:
+        changes += backslash_count
+    
+    if changes > 0:
+        logger.debug("Removed %d invalid escape sequences from text", changes)
+    
+    return text
+
+def _filter_control_chars(text: str) -> str:
+    """Remove control characters except common whitespace."""
+    # Keep only printable characters and common whitespace
+    original_len = len(text)
+    filtered_text = ''.join(char for char in text if ord(char) >= 32 or char in '\n\r\t')
+    
+    removed_count = original_len - len(filtered_text)
+    if removed_count > 0:
+        logger.debug("Filtered %d control characters from text", removed_count)
+    
+    return filtered_text
+
+def _clean_text_for_embedding(text: str) -> str:
+    """Clean text to prevent JSON parsing errors in TEI service."""
+    text = _normalize_text_encoding(text)
+    text = _remove_invalid_escapes(text)
+    text = _filter_control_chars(text)
+    return text.strip()
+
 def _embed_texts(texts: List[str]) -> np.ndarray:
     st = time.monotonic()
     batch_size = 16  # Process texts in smaller batches
     all_embs = []
     
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i+batch_size]
-        resp = requests.post(f"{TEI_ORIGIN}/embeddings", json={"input": batch}, timeout=60)
-        resp.raise_for_status()
+    # Clean all texts before processing
+    cleaned_texts = [_clean_text_for_embedding(text) for text in texts]
+    cleaned_count = sum(1 for orig, clean in zip(texts, cleaned_texts) if orig != clean)
+    if cleaned_count > 0:
+        logger.info("Cleaned %d texts for embedding processing", cleaned_count)
+    
+    for i in range(0, len(cleaned_texts), batch_size):
+        batch = cleaned_texts[i:i+batch_size]
+        
+        # Retry mechanism for TEI API calls
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                resp = requests.post(f"{TEI_ORIGIN}/embeddings", json={"input": batch}, timeout=60)
+                resp.raise_for_status()
+                break
+            except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
+                if attempt == max_retries - 1:
+                    logger.error("TEI embedding failed after %d attempts: %s", max_retries, e)
+                    raise
+                logger.warning("TEI embedding attempt %d failed, retrying: %s", attempt + 1, e)
+                time.sleep(2 ** attempt)  # Exponential backoff
+        
         data = resp.json()
         if "data" in data:
             embs = [d["embedding"] for d in data["data"]]
@@ -86,7 +177,9 @@ def _top_k_by_centroid(embs: np.ndarray, idxs: List[int], k: int = 50) -> List[i
 def _rerank(bge_model: str, query: str, candidates: List[str]) -> List[int]:
     st = time.monotonic()
     ce = CrossEncoder(bge_model)
-    pairs = [[query, c] for c in candidates]
+    # Ensure all candidates are clean strings
+    clean_candidates = [_clean_text_for_embedding(c) for c in candidates]
+    pairs = [[_clean_text_for_embedding(query), c] for c in clean_candidates]
     scores = ce.predict(pairs)
     order = np.argsort(-scores)
     logger.info("rerank candidates=%d took_ms=%d", len(candidates), int((time.monotonic()-st)*1000))

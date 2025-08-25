@@ -37,9 +37,8 @@ def to_gemini(schema: dict) -> dict:
             if key in node:
                 result[key] = node[key]
         
-        # Force additionalProperties false for objects
-        if result.get("type") == "OBJECT":
-            result["additionalProperties"] = False
+        # Note: additionalProperties not supported in Gemini API
+        # Removed to fix compatibility with latest Gemini API
             
         return result
     
