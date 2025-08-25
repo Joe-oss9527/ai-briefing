@@ -1,13 +1,9 @@
-
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "BriefingResult",
   "type": "object",
-  "required": [
-    "title",
-    "date",
-    "topics"
-  ],
+  "required": ["title", "date", "topics"],
+  "additionalProperties": false,
   "properties": {
     "title": {
       "type": "string",
@@ -15,18 +11,14 @@
     },
     "date": {
       "type": "string",
-      "minLength": 10
+      "format": "date-time"
     },
     "topics": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "topic_id",
-          "headline",
-          "bullets",
-          "links"
-        ],
+        "required": ["topic_id", "headline", "bullets"],
+        "additionalProperties": false,
         "properties": {
           "topic_id": {
             "type": "string",
@@ -41,15 +33,19 @@
             "minItems": 1,
             "maxItems": 4,
             "items": {
-              "type": "string",
-              "minLength": 8
-            }
-          },
-          "links": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 8
+              "type": "object",
+              "required": ["text", "url"],
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 8
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
             }
           }
         }
