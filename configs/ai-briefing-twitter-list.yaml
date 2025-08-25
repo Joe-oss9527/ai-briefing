@@ -32,7 +32,7 @@ output:
   telegram:
     enabled: true
     chat_id: '@ai_daily_briefing'
-    parse_mode: Markdown
+    parse_mode: HTML
     chunk_size: 3500
   github_backup:
     enabled: true

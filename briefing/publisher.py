@@ -25,6 +25,30 @@ def telegram_send(text: str, chat_id: str, bot_token: str, parse_mode: Optional[
         sent += 1
     logger.info("telegram_send success parts=%d", sent)
 
+def _markdown_to_html(markdown_text: str) -> str:
+    """Convert Markdown to HTML format for Telegram"""
+    import re
+    
+    text = markdown_text
+    # Convert headers
+    text = re.sub(r'^# (.+)$', r'<b>\1</b>', text, flags=re.MULTILINE)
+    text = re.sub(r'^## (.+)$', r'<b>\1</b>', text, flags=re.MULTILINE)
+    text = re.sub(r'^### (.+)$', r'<b>\1</b>', text, flags=re.MULTILINE)
+    
+    # Convert bold
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    
+    # Convert italic
+    text = re.sub(r'\*(.+?)\*', r'<i>\1</i>', text)
+    
+    # Convert links - [text](url) to <a href="url">text</a>
+    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', text)
+    
+    # Convert inline code
+    text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
+    
+    return text
+
 def maybe_publish_telegram(markdown_text: str, output_cfg: dict):
     tg = (output_cfg or {}).get("telegram") or {}
     if not tg.get("enabled"):
@@ -37,7 +61,13 @@ def maybe_publish_telegram(markdown_text: str, output_cfg: dict):
     if not (chat_id and bot_token):
         logger.warning("telegram not configured: chat_id or token missing")
         return
-    telegram_send(markdown_text, chat_id, bot_token, parse_mode=parse_mode, chunk_size=chunk_size)
+    
+    # Convert Markdown to HTML if HTML parse mode is used
+    text_to_send = markdown_text
+    if parse_mode == "HTML":
+        text_to_send = _markdown_to_html(markdown_text)
+    
+    telegram_send(text_to_send, chat_id, bot_token, parse_mode=parse_mode, chunk_size=chunk_size)
 
 # ---------- GitHub backup ----------
 
