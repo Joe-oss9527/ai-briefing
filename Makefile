@@ -106,7 +106,7 @@ hn:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm --no-deps worker cli.py --config configs/ai-briefing-hackernews.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-hackernews.yaml
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-hackernews/"
@@ -118,7 +118,7 @@ twitter:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm --no-deps worker cli.py --config configs/ai-briefing-twitter-list.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-twitter-list.yaml
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
@@ -130,7 +130,7 @@ reddit:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm --no-deps worker cli.py --config configs/ai-briefing-reddit.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-reddit.yaml
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-reddit/"
@@ -318,7 +318,7 @@ setup:
 
 test-config:
 	@echo "🔍 验证配置文件..."
-	@docker compose run --rm --no-deps worker python -c "from utils import validate_config; import yaml; import sys; \
+	@docker compose run --rm worker python -c "from utils import validate_config; import yaml; import sys; \
 		configs = ['configs/ai-briefing-hackernews.yaml', 'configs/ai-briefing-twitter-list.yaml', 'configs/ai-briefing-reddit.yaml']; \
 		for c in configs: \
 			print(f'Checking {c}...'); \
@@ -328,7 +328,7 @@ test-config:
 
 shell:
 	@echo "🐚 进入 Worker 容器 Shell..."
-	@docker compose run --rm --no-deps worker /bin/bash
+	@docker compose run --rm worker /bin/bash
 
 validate:
 	$(PY) scripts/validate_config.py --config $(CONFIG)

@@ -69,7 +69,7 @@ services:
       - models-cache:/home/appuser/.cache/huggingface  # 修正缓存路径到非root用户
       - logs:/workspace/logs
     env_file: .env
-    command: ["python", "-c", "import time; time.sleep(999999999)"]
+    command: sleep infinity
     networks:
       - default
     extra_hosts:
