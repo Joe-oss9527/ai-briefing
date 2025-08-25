@@ -55,7 +55,7 @@ services:
   #     timeout: 5s
   #     retries: 10
 
-worker:
+  worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
