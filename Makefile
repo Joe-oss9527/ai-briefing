@@ -5,7 +5,7 @@ PY ?= python3
 # AI-Briefing 便捷命令
 # 使用: make [命令]
 
-.PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit logs clean-output check-services check-deps install-deps install-tei clean-tei download-models setup validate run
+.PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit logs clean-output build check-services check-deps install-deps install-tei clean-tei download-models setup validate run
 
 
 # 默认显示帮助
@@ -42,6 +42,9 @@ help:
 	@echo "  make download-models - 下载 AI 模型文件"
 	@echo "  make clean-tei     - 清理 TEI 相关文件"
 	@echo ""
+	@echo "构建优化:"
+	@echo "  make build         - 构建优化镜像 (多阶段构建)"
+	@echo ""
 	@echo "其他:"
 	@echo "  make logs          - 查看实时日志"
 	@echo "  make clean-output  - 清理 7 天前的输出文件"
@@ -51,8 +54,10 @@ help:
 
 start:
 	@echo "🚀 启动 AI-Briefing 服务..."
+	@echo "  构建优化的生产镜像..."
+	@docker compose build --build-arg BUILDKIT_INLINE_CACHE=1
 	@echo "  启动 Docker 服务..."
-	@docker compose up -d --build
+	@docker compose up -d
 	@echo "  启动本地 TEI 服务 (Metal GPU)..."
 	@./scripts/start-tei.sh > /dev/null 2>&1 &
 	@echo "⏳ 等待服务就绪..."
@@ -101,7 +106,7 @@ hn:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker cli.py --config configs/ai-briefing-hackernews.yaml
+	@docker compose run --rm --no-deps worker cli.py --config configs/ai-briefing-hackernews.yaml
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-hackernews/"
@@ -113,7 +118,7 @@ twitter:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker cli.py --config configs/ai-briefing-twitter-list.yaml
+	@docker compose run --rm --no-deps worker cli.py --config configs/ai-briefing-twitter-list.yaml
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
@@ -125,7 +130,7 @@ reddit:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker cli.py --config configs/ai-briefing-reddit.yaml
+	@docker compose run --rm --no-deps worker cli.py --config configs/ai-briefing-reddit.yaml
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-reddit/"
@@ -196,6 +201,16 @@ clean-output:
 	@find out -name "*.json" -mtime +7 -delete 2>/dev/null || true
 	@find out -name "*.html" -mtime +7 -delete 2>/dev/null || true
 	@echo "✅ 清理完成"
+
+# ========== 构建优化 ==========
+
+build:
+	@echo "🏗️  构建优化镜像..."
+	@echo "  使用多阶段构建减少镜像大小..."
+	@DOCKER_BUILDKIT=1 docker compose build --build-arg BUILDKIT_INLINE_CACHE=1
+	@echo "✅ 优化镜像构建完成！"
+	@echo "📊 查看镜像大小："
+	@docker images | grep ai-briefing-worker || docker images | grep worker
 
 # ========== 开发调试 ==========
 

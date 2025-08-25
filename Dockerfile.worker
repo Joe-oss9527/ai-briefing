@@ -1,42 +1,70 @@
 
-FROM python:3.11-slim
+# ======================
+# Build stage for dependencies
+# ======================
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Set Python environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create Python wheel dependencies
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# Download fastText model in build stage
+RUN wget -O /app/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
+
+# ======================
+# Production stage - minimal runtime
+# ======================
+FROM python:3.11-slim AS production
 
 WORKDIR /workspace
 
-# Install system dependencies as root
+# Set Python environment variables for production
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME="/home/appuser/.cache/huggingface" \
+    HOME="/home/appuser"
+
+# Install minimal runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    wget \
     ca-certificates \
-    git \
-    openssh-client \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser -d /home/appuser -m appuser
 
-# Install Python dependencies as root (for system-wide access)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies from wheels (faster, no build tools needed)
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+RUN pip install --no-cache /wheels/* \
+    && rm -rf /wheels
 
-# Download fastText model and set ownership
-RUN wget -O /workspace/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin \
-    && chown appuser:appuser /workspace/lid.176.bin
+# Copy fastText model from builder
+COPY --from=builder --chown=appuser:appuser /app/lid.176.bin /workspace/lid.176.bin
 
-# Copy application code and set ownership
+# Copy application code with proper ownership
 COPY --chown=appuser:appuser . .
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /home/appuser/.cache/huggingface /workspace/logs /workspace/out \
     && chown -R appuser:appuser /home/appuser/.cache /workspace/logs /workspace/out
 
-# Switch to non-root user
+# Switch to non-root user for security
 USER appuser
-
-# Set environment variables for the non-root user
-ENV HF_HOME="/home/appuser/.cache/huggingface"
-ENV HOME="/home/appuser"
 
 ENTRYPOINT ["python"]
 

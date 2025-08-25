@@ -59,13 +59,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
+      target: production  # 明确指定使用生产阶段
     restart: "no"
     depends_on:
       - rsshub
     working_dir: /workspace
     volumes:
       - ./:/workspace
-      - models-cache:/root/.cache/huggingface  # Docker 管理的命名卷，持久化 2.27GB 模型
+      - models-cache:/home/appuser/.cache/huggingface  # 修正缓存路径到非root用户
       - logs:/workspace/logs
     env_file: .env
     command: ["python", "-c", "import time; time.sleep(999999999)"]
