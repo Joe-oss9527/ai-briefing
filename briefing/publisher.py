@@ -77,50 +77,80 @@ def _tokenized_url(url: str, token: str) -> str:
         return url
     return url.replace("https://", f"https://x-access-token:{token}@")
 
-def maybe_github_backup(output_dir: str, output_cfg: dict, briefing_id: str, run_id: str):
+def maybe_github_backup(generated_files: list, output_cfg: dict, briefing_id: str, run_id: str):
     gb = (output_cfg or {}).get("github_backup") or {}
     if not gb.get("enabled"):
         return
 
-    repo_dir = gb.get("repo_dir", ".")
-    branch = gb.get("branch", "main")
-    author_name = os.getenv(gb.get("author_name_env", "GIT_AUTHOR_NAME"), "AI Briefing Bot")
-    author_email = os.getenv(gb.get("author_email_env", "GIT_AUTHOR_EMAIL"), "bot@example.com")
     token = os.getenv(gb.get("token_env", "GITHUB_TOKEN"), "")
-    repo_url_cfg = gb.get("repo_url", "")
-    pathspec = gb.get("pathspec") or output_dir
+    repo_path = gb.get("repo", "")
+    branch = gb.get("branch", "main")
     commit_prefix = gb.get("commit_message_prefix", "briefing")
 
-    try:
-        _run_safe(["git", "rev-parse", "--is-inside-work-tree"], cwd=repo_dir)
-        logger.info("github_backup: using existing git repo at %s", repo_dir)
-    except Exception:
-        logger.info("github_backup: init new repo at %s", repo_dir)
-        _run_safe(["git", "init"], cwd=repo_dir)
-
-    if repo_url_cfg:
-        try:
-            _run_safe(["git", "remote", "add", "origin", _tokenized_url(repo_url_cfg, token)], cwd=repo_dir)
-        except Exception:
-            _run_safe(["git", "remote", "set-url", "origin", _tokenized_url(repo_url_cfg, token)], cwd=repo_dir)
-
-    _run_safe(["git", "config", "user.name", author_name], cwd=repo_dir)
-    _run_safe(["git", "config", "user.email", author_email], cwd=repo_dir)
-    _run_safe(["git", "checkout", "-B", branch], cwd=repo_dir)
-    _run_safe(["git", "add", "--all", pathspec], cwd=repo_dir)
-
-    status = _run_safe(["git", "status", "--porcelain"], cwd=repo_dir)
-    if not status:
-        logger.info("github_backup: no changes detected for pathspec=%s", pathspec)
+    if not token or not repo_path:
+        logger.error("github_backup: missing token or repo")
         return
 
-    msg = f"{commit_prefix}: {briefing_id} run={run_id}"
-    _run_safe(["git", "commit", "-m", msg], cwd=repo_dir)
+    success_count = 0
+    from datetime import datetime
+    import base64
 
-    try:
-        _run_safe(["git", "push", "origin", branch], cwd=repo_dir)
-    except Exception as e:
-        logger.error("github_backup push failed: %s", e)
-        raise
-    logger.info("github_backup: pushed branch=%s pathspec=%s", branch, pathspec)
+    for file_path in generated_files:
+        if not os.path.exists(file_path):
+            continue
+
+        try:
+            # Read file content
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Generate GitHub path with year/month organization
+            now = datetime.now()
+            filename = os.path.basename(file_path)
+            github_path = f"{now.strftime('%Y')}/{now.strftime('%m')}/{briefing_id}/{filename}"
+
+            # Upload via GitHub API
+            if _upload_to_github(token, repo_path, github_path, content, 
+                               f"{commit_prefix}: {briefing_id} {filename} run={run_id}"):
+                success_count += 1
+                logger.info("github_backup: uploaded %s", filename)
+            else:
+                logger.error("github_backup: failed to upload %s", filename)
+
+        except Exception as e:
+            logger.error("github_backup: error processing %s: %s", file_path, e)
+
+    logger.info("github_backup: uploaded %d/%d files", success_count, len(generated_files))
+
+
+def _upload_to_github(token: str, repo: str, file_path: str, content: str, commit_message: str) -> bool:
+    """Upload file to GitHub via API"""
+    import requests
+    import base64
+
+    api_url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
+    # Check if file exists
+    response = requests.get(api_url, headers=headers)
+    existing_sha = None
+    if response.status_code == 200:
+        existing_sha = response.json().get('sha')
+
+    # Prepare file content (GitHub API requires base64)
+    content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+
+    # Upload or update file
+    data = {
+        'message': commit_message,
+        'content': content_b64
+    }
+    if existing_sha:
+        data['sha'] = existing_sha
+
+    response = requests.put(api_url, headers=headers, json=data)
+    return response.status_code in [200, 201]
 

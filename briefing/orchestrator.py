@@ -65,7 +65,7 @@ def _execute_pipeline(cfg: Dict[str, Any], run_id: str) -> None:
         return
 
     out_dir = cfg["output"]["dir"]
-    write_output(md, js, cfg["output"])
+    generated_files = write_output(md, js, cfg["output"])
     logger.info("output written dir=%s", out_dir)
 
     try:
@@ -74,7 +74,7 @@ def _execute_pipeline(cfg: Dict[str, Any], run_id: str) -> None:
         logger.error("telegram publish failed: %s", e)
 
     try:
-        maybe_github_backup(out_dir, cfg["output"], briefing_id, run_id)
+        maybe_github_backup(generated_files, cfg["output"], briefing_id, run_id)
     except Exception as e:
         logger.error("github backup failed: %s", e)
 

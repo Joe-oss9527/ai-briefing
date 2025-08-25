@@ -58,14 +58,20 @@ def write_output(human_md: str, json_obj: dict, out_cfg: dict):
     os.makedirs(out_dir, exist_ok=True)
     ts = now_utc().strftime("%Y%m%dT%H%M%SZ")
     base = os.path.join(out_dir, f"briefing_{ts}")
+    
+    generated_files = []
 
     if "md" in formats:
-        with open(base + ".md", "w", encoding="utf-8") as f:
+        md_path = base + ".md"
+        with open(md_path, "w", encoding="utf-8") as f:
             f.write(human_md)
+        generated_files.append(md_path)
 
     if "json" in formats:
-        with open(base + ".json", "w", encoding="utf-8") as f:
+        json_path = base + ".json"
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(json_obj, f, ensure_ascii=False, indent=2)
+        generated_files.append(json_path)
 
     if "html" in formats:
         html = f"""<!DOCTYPE html>
@@ -73,8 +79,12 @@ def write_output(human_md: str, json_obj: dict, out_cfg: dict):
 <body><pre>
 {human_md}
 </pre></body></html>"""
-        with open(base + ".html", "w", encoding="utf-8") as f:
+        html_path = base + ".html"
+        with open(html_path, "w", encoding="utf-8") as f:
             f.write(html)
+        generated_files.append(html_path)
+    
+    return generated_files
 
 # ---------- Logging ----------
 

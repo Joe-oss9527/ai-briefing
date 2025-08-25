@@ -30,13 +30,11 @@ output:
   - md
   - json
   telegram:
-    enabled: false
-    chat_id: ''
-    parse_mode: None
+    enabled: true
+    chat_id: '@ai_daily_briefing'
+    parse_mode: Markdown
     chunk_size: 3500
   github_backup:
-    enabled: false
-    repo_url: ''
-    repo_dir: .
-    branch: main
+    enabled: true
+    repo: 'Joe-oss9527/ai-briefing-archive'
     commit_message_prefix: ai-briefing-twitter-list
