@@ -1,0 +1,3 @@
+[submodule "AIHeadline.news"]
+	path = AIHeadline.news
+	url = https://github.com/Joe-oss9527/AIHeadline.news.git
