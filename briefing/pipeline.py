@@ -14,7 +14,7 @@ from sentence_transformers import CrossEncoder
 
 from briefing.utils import now_utc, get_logger
 
-TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://host.docker.internal:8080")
+TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://tei:3000")
 LID_MODEL_PATH = os.getenv("LID_MODEL_PATH", "/workspace/lid.176.bin")
 logger = get_logger(__name__)
 
@@ -264,4 +264,3 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
     bundles.sort(key=lambda b: len(b["items"]), reverse=True)
     logger.info("pipeline: bundles=%d", len(bundles))
     return bundles
-

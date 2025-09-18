@@ -22,3 +22,4 @@ History follows lightweight Conventional commits (`feat:`, `fix:`, `refactor:`, 
 
 ## Configuration & Security Tips
 Copy `.env.example` to `.env`, store secrets locally, and avoid checking them in. Validate YAML config changes before running pipelines, and prefer minimal-scope API credentials. `output.telegram` now supports `disable_link_preview`, `timeout_sec`, `retries`, and optional inline `bot_token`; keep parse mode at `HTML` unless you map the Markdown precisely. `output.github_backup` expects `<org>/<repo>` plus committer metadata—set `token_env` or `token` with least-privilege scopes. Service overrides belong in `docker-compose.override.yml` so shared `make start` behaviour stays predictable.
+`TEI_MODE` controls whether the embeddings service runs in the Docker stack (`compose`, default) or via the Metal-friendly local binary (`local`); keep `TEI_ORIGIN` aligned with the chosen mode.

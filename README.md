@@ -12,7 +12,7 @@ AI-Briefing 是一个可扩展的智能简报生成平台，通过 ML 驱动的�
 
 - 🔄 **多源聚合**: 支持 Hacker News、Twitter、Reddit 等主流平台
 - 🧠 **ML 处理管道**: 文本嵌入 → 去重 → 聚类 → 重排序 → 摘要生成
-- ⚡ **Metal GPU 加速**: Apple Silicon 原生 TEI 服务，性能提升 3-5x
+- ⚡ **TEI 嵌入服务**: 默认容器化部署，可选 Apple Silicon Metal GPU 加速
 - 🎯 **智能聚类**: HDBSCAN 算法自动识别话题，BGE-Reranker 优化相关性
 - 📡 **多渠道发布**: Telegram 推送、GitHub 备份、本地文件输出
 - 🚀 **一键部署**: 自动化安装与配置，开箱即用
@@ -27,7 +27,7 @@ make setup
 
 ### 2. 启动服务
 ```bash
-# 启动所有服务 (Docker + 本地TEI)
+# 启动所有服务 (默认包含容器化 TEI)
 make start
 ```
 
@@ -85,7 +85,17 @@ GITHUB_TOKEN=your_github_token
 # Twitter 认证 (可选)
 TWITTER_USERNAME=your_username
 TWITTER_PASSWORD=your_password
+TEI_MODE=compose
+TEI_MODEL_ID=sentence-transformers/all-MiniLM-L6-v2
+TEI_ORIGIN=http://tei:3000
+HF_TOKEN=your_huggingface_token
 ```
+
+### TEI 服务模式
+
+- **compose (默认)**：`make start` 会通过 Docker Compose 启动 `tei` 容器，端口映射为 `http://localhost:8080`，容器内请求使用 `http://tei:3000`。
+- **local (备用)**：设置 `TEI_MODE=local` 并将 `TEI_ORIGIN` 改为 `http://host.docker.internal:8080`，`make start` 会调用 `scripts/start-tei.sh` 在宿主机启动 Metal GPU 加速的 `text-embeddings-router`。
+- 切换模式后建议运行 `make check-services`，确认 `http://localhost:8080/health` 返回正常。
 
 ### 任务配置
 在 `configs/` 目录下自定义任务配置：
@@ -128,7 +138,7 @@ graph LR
 - **Publisher**: 多渠道内容分发器
 
 ### 服务架构
-- **TEI**: 本地 Metal GPU 加速的文本嵌入服务
+- **TEI**: 默认容器化部署，可选本地 Metal GPU 加速
 - **RSSHub**: Twitter 数据代理服务
 - **Redis**: 缓存后端
 - **Browserless**: 无头浏览器服务
@@ -170,14 +180,16 @@ make check-deps    # 检查系统依赖状态
 ## 🔧 故障排除
 
 ### TEI 服务问题
-如果遇到 TEI 服务启动失败：
-```bash
-# 检查 TEI 二进制文件
-ls ~/.cargo/bin/text-embeddings-router
-
-# 重新编译安装
-make clean-tei && make install-tei
-```
+- **compose 模式**：
+  ```bash
+  docker compose --profile tei logs -f tei   # 查看容器日志
+  curl http://localhost:8080/health         # 健康检查
+  ```
+- **local 模式**：
+  ```bash
+  ls ~/.cargo/bin/text-embeddings-router    # 检查二进制
+  make clean-tei && make install-tei        # 重新编译安装
+  ```
 
 ### Docker 网络问题
 确保使用 Docker Compose v2：

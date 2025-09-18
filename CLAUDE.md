@@ -20,12 +20,12 @@ make download-models # Download AI model files
 make clean-tei     # Clean TEI related files
 
 # Service management
-make start          # Start all services
+make start          # Start all services (respects TEI_MODE)
 make stop           # Stop all services
 make restart        # Restart all services
 make status         # Check service status
-make start-tei      # Start local TEI service
-make stop-tei       # Stop local TEI service
+make start-tei      # Start TEI service (compose/local)
+make stop-tei       # Stop TEI service (compose/local)
 make check-services # Health check all services
 
 # Data collection (with progress indicators)
@@ -57,7 +57,7 @@ make clean-output  # Clean files older than 7 days
 
 ### Direct Docker Commands
 ```bash
-# Note: TEI now runs locally with Metal GPU acceleration
+# Default: TEI runs inside the compose stack (set TEI_MODE=local for Metal fallback)
 docker compose up -d --build
 
 # Run a briefing task
@@ -250,25 +250,19 @@ GITHUB_TOKEN=xxx
 ## Troubleshooting
 
 ### TEI Service Issues
-**Problem**: TEI Docker issues on Apple Silicon (ARM64 architecture)
-**Root Cause**: Docker TEI images don't support ARM64 natively, causing performance issues
-**Solution**: Use native TEI installation with Metal GPU acceleration
-```bash
-# Install TEI locally with Metal support
-make install-tei
+- **Compose 模式 (默认)**：
+  ```bash
+  docker compose --profile tei logs -f tei   # 查看容器日志
+  curl http://localhost:8080/health          # 健康检查
+  ```
+  如果需要 GPU/CUDA，可将 `tei` 服务镜像替换为 `cu121` 标签并在 compose 中启用 `--gpus`。
 
-# Start local TEI service
-make start-tei
-
-# TEI runs on localhost:8080 with Metal GPU acceleration
-```
-
-**Legacy Docker Solution** (not recommended for Apple Silicon):
-```yaml
-tei:
-  image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest  # Use latest, not 1.5
-  command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
-```
+- **Local 模式 (Metal 备用)**：
+  ```bash
+  make install-tei   # 编译安装 text-embeddings-router (Metal 支持)
+  make start-tei     # 启动本地 TEI 服务
+  ```
+  确保 `.env` 设置 `TEI_MODE=local` 且 `TEI_ORIGIN=http://host.docker.internal:8080`，便于容器内访问宿主服务。
 
 ### Worker Container Issues
 **Problem**: "can't open file '/workspace/sleep'" or command execution errors

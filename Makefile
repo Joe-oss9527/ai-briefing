@@ -2,6 +2,15 @@
 CONFIG ?= configs/ai-briefing-twitter-list.yaml
 PY ?= python3
 
+ifneq (,$(wildcard .env))
+include .env
+export
+endif
+
+TEI_MODE ?= compose
+TEI_HEALTH_URL ?= http://localhost:8080/health
+TEI_HEALTH_RETRIES ?= 10
+
 # AI-Briefing 便捷命令
 # 使用: make [命令]
 
@@ -18,8 +27,8 @@ help:
 	@echo "  make stop           - 停止所有服务"
 	@echo "  make restart        - 重启所有服务"
 	@echo "  make status         - 查看服务状态"
-	@echo "  make start-tei      - 启动本地 TEI 服务"
-	@echo "  make stop-tei       - 停止本地 TEI 服务"
+	@echo "  make start-tei      - 启动 TEI 服务 (compose/local)"
+	@echo "  make stop-tei       - 停止 TEI 服务 (compose/local)"
 	@echo "  make check-services - 检查服务健康状态"
 	@echo ""
 	@echo "数据收集:"
@@ -56,19 +65,45 @@ start:
 	@echo "🚀 启动 AI-Briefing 服务..."
 	@echo "  构建优化的生产镜像..."
 	@docker compose build --build-arg BUILDKIT_INLINE_CACHE=1
-	@echo "  启动 Docker 服务..."
-	@docker compose up -d
-	@echo "  启动本地 TEI 服务 (Metal GPU)..."
-	@./scripts/start-tei.sh > /dev/null 2>&1 &
+	@if [ "$(TEI_MODE)" = "compose" ]; then \
+		echo "  启动 Docker 服务 (包含 TEI 容器)..."; \
+		docker compose --profile tei up -d; \
+	else \
+		echo "  启动 Docker 服务 (不包含 TEI 容器)..."; \
+		docker compose up -d; \
+		echo "  启动本地 TEI 服务 (Metal GPU)..."; \
+		./scripts/start-tei.sh > /dev/null 2>&1 & \
+	fi
 	@echo "⏳ 等待服务就绪..."
-	@sleep 8
+	@sleep 4
+	@if [ "$(TEI_MODE)" = "local" ]; then \
+		echo "  校验本地 TEI 服务..."; \
+		STATUS=1; \
+		for i in $$(seq 1 $(TEI_HEALTH_RETRIES)); do \
+			if curl -sSf $(TEI_HEALTH_URL) > /dev/null 2>&1; then \
+				STATUS=0; \
+				echo "  本地 TEI 服务已就绪"; \
+				break; \
+			fi; \
+			sleep 1; \
+		done; \
+		if [ $$STATUS -ne 0 ]; then \
+			echo "❌ 本地 TEI 服务启动失败，请检查 scripts/start-tei.sh 输出"; \
+			exit 1; \
+		fi; \
+	fi
+	@sleep 4
 	@echo "✅ 所有服务已启动！"
 	@make check-services
 
 stop:
 	@echo "🛑 停止 AI-Briefing 服务..."
-	@docker compose down
-	@pkill -f text-embeddings-router || echo "  TEI 服务未在运行"
+	@if [ "$(TEI_MODE)" = "compose" ]; then \
+		docker compose --profile tei down; \
+	else \
+		docker compose down; \
+		pkill -f text-embeddings-router || echo "  TEI 服务未在运行"; \
+	fi
 	@echo "✅ 所有服务已停止"
 
 restart:
@@ -81,14 +116,40 @@ status:
 	@docker compose ps
 
 start-tei:
-	@echo "⚡ 启动本地 TEI 服务 (Metal GPU)..."
-	@./scripts/start-tei.sh &
-	@sleep 3
+	@if [ "$(TEI_MODE)" = "compose" ]; then \
+		echo "⚡ 启动容器化 TEI 服务..."; \
+		docker compose --profile tei up -d tei; \
+	else \
+		echo "⚡ 启动本地 TEI 服务 (Metal GPU)..."; \
+		./scripts/start-tei.sh > /dev/null 2>&1 & \
+	fi
+	@if [ "$(TEI_MODE)" = "local" ]; then \
+		STATUS=1; \
+		for i in $$(seq 1 $(TEI_HEALTH_RETRIES)); do \
+			if curl -sSf $(TEI_HEALTH_URL) > /dev/null 2>&1; then \
+				STATUS=0; \
+				echo "  本地 TEI 服务已就绪"; \
+				break; \
+			fi; \
+			sleep 1; \
+		done; \
+		if [ $$STATUS -ne 0 ]; then \
+			echo "❌ 本地 TEI 服务启动失败，请检查 scripts/start-tei.sh"; \
+			exit 1; \
+		fi; \
+	else \
+		sleep 3; \
+	fi
 	@echo "✅ TEI 服务已启动！"
 
 stop-tei:
-	@echo "🛑 停止本地 TEI 服务..."
-	@pkill -f text-embeddings-router || echo "TEI 服务未在运行"
+	@if [ "$(TEI_MODE)" = "compose" ]; then \
+		echo "🛑 停止容器化 TEI 服务..."; \
+		docker compose --profile tei stop tei >/dev/null 2>&1 || echo "TEI 容器未在运行"; \
+	else \
+		echo "🛑 停止本地 TEI 服务..."; \
+		pkill -f text-embeddings-router || echo "TEI 服务未在运行"; \
+	fi
 	@echo "✅ TEI 服务已停止"
 
 check-services:
@@ -335,4 +396,3 @@ validate:
 
 run:
 	$(PY) cli.py --config $(CONFIG)
-
