@@ -90,7 +90,7 @@ class _TelegramHTMLRenderer(mistune.HTMLRenderer):
         return "────────\n"
 
 
-def md_to_tg_html(markdown_text: str, limit: int = TELEGRAM_LIMIT, headroom: int = 100) -> str:
+def md_to_tg_html(markdown_text: str) -> str:
     normalized = (markdown_text or "").replace("\r\n", "\n").strip()
     parser = mistune.create_markdown(
         renderer=_TelegramHTMLRenderer(),
@@ -99,24 +99,37 @@ def md_to_tg_html(markdown_text: str, limit: int = TELEGRAM_LIMIT, headroom: int
     html = parser(normalized)
     html = re.sub(r"</?(?:p|ul|ol|li|hr|table|thead|tbody|tr|th|td|div)>", "", html, flags=re.IGNORECASE)
     html = html.replace("&nbsp;", " ")
-    max_len = max(1, min(limit, TELEGRAM_LIMIT) - max(0, headroom))
-    return html[:max_len].strip()
+    return html.strip()
 
 
-def split_html_for_telegram(html: str, limit: int = TELEGRAM_LIMIT) -> list[str]:
+def split_html_for_telegram(html: str, limit: int = TELEGRAM_LIMIT, headroom: int = 0) -> list[str]:
     text = html or ""
+    max_len = max(1, min(limit, TELEGRAM_LIMIT) - max(0, headroom))
+    boundary_tokens = (
+        ("\n\n", 0),
+        ("</pre>", len("</pre>")),
+        ("</blockquote>", len("</blockquote>")),
+    )
     parts: list[str] = []
     while text:
-        if len(text) <= limit:
+        if len(text) <= max_len:
             parts.append(text)
             break
-        cut = max(
-            text.rfind("\n\n", 0, limit),
-            text.rfind("</pre>", 0, limit),
-            text.rfind("</blockquote>", 0, limit),
-        )
-        if cut == -1 or cut < int(limit * 0.7):
-            cut = limit
+        window = text[:max_len]
+        cut = -1
+        include = 0
+        for token, token_len in boundary_tokens:
+            idx = window.rfind(token)
+            if idx > cut:
+                cut = idx
+                include = token_len
+        if cut == -1 or cut < int(max_len * 0.7):
+            cut = max_len
+            include = 0
+        else:
+            cut += include
+        if cut <= 0:
+            cut = max_len
         parts.append(text[:cut])
         text = text[cut:].lstrip()
     return parts

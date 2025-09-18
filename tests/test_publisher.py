@@ -1,14 +1,24 @@
 import base64
 import importlib.util
+import os
+import sys
+import types
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "briefing" / "publisher.py"
+if "briefing" not in sys.modules:
+    package = types.ModuleType("briefing")
+    package.__path__ = [str(MODULE_PATH.parent)]
+    sys.modules["briefing"] = package
+
+os.environ.setdefault("LOG_DIR", str(Path(__file__).resolve().parent / "_logs"))
 spec = importlib.util.spec_from_file_location("briefing.publisher", MODULE_PATH)
 publisher = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
+sys.modules[spec.name] = publisher
 spec.loader.exec_module(publisher)  # type: ignore[attr-defined]
 
 
@@ -19,11 +29,25 @@ def test_md_to_tg_html_sanitizes_urls():
     assert "<b>Title</b>" in html
 
 
+def test_md_to_tg_html_does_not_truncate_long_input():
+    md = "# Heading\n\n" + "body " * 1200
+    html = publisher.md_to_tg_html(md)
+    assert len(html) > 4096
+
+
 def test_split_html_for_telegram_respects_limit():
     block = ("Paragraph." + "\n\n") * 100
     parts = publisher.split_html_for_telegram(block, limit=500)
     assert parts
     assert all(len(part) <= 500 for part in parts)
+
+
+def test_split_html_for_telegram_preserves_closing_tags():
+    html = "<blockquote>" + ("line " * 25) + "</blockquote> tail"
+    closing = html.index("</blockquote>") + len("</blockquote>")
+    parts = publisher.split_html_for_telegram(html, limit=closing + 1)
+    assert parts[0].endswith("</blockquote>")
+    assert parts[1].startswith("tail")
 
 
 def test_telegram_publisher_chunks(monkeypatch):
@@ -113,4 +137,3 @@ def test_maybe_github_backup_requires_repo_and_token(caplog):
     caplog.set_level("ERROR")
     publisher.maybe_github_backup(["foo.md"], {"github_backup": {"enabled": True}}, "id", "run")
     assert any("missing token or repo" in record.message for record in caplog.records)
-PY
