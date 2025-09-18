@@ -33,11 +33,21 @@ output:
   telegram:
     enabled: true
     chat_id: '@your_channel_or_chat_id'
-    parse_mode: None
+    parse_mode: HTML
     chunk_size: 3500
+    bot_token_env: TELEGRAM_BOT_TOKEN
+    disable_link_preview: true
+    timeout_sec: 30
+    retries: 3
+    bot_token: ''
   github_backup:
     enabled: true
-    repo_url: https://github.com/yourname/briefing-backup.git
-    repo_dir: .
     branch: main
     commit_message_prefix: ai-briefing-hackernews
+    repo: https://github.com/yourname/briefing-backup.git
+    token: ''
+    token_env: GITHUB_TOKEN
+    committer_name: ai-briefing
+    committer_email: noreply@example.com
+    timeout_sec: 30
+    retries: 3

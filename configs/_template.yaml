@@ -32,16 +32,21 @@ output:
   telegram:
     enabled: false
     chat_id: ''
-    parse_mode: None
+    parse_mode: HTML
     chunk_size: 3500
     bot_token_env: TELEGRAM_BOT_TOKEN
+    disable_link_preview: true
+    timeout_sec: 30
+    retries: 3
+    bot_token: ''
   github_backup:
     enabled: false
-    repo_url: ''
-    repo_dir: .
     branch: main
-    author_name_env: GIT_AUTHOR_NAME
-    author_email_env: GIT_AUTHOR_EMAIL
     token_env: GITHUB_TOKEN
     commit_message_prefix: briefing
-    pathspec: ''
+    repo: ''
+    token: ''
+    committer_name: ai-briefing
+    committer_email: noreply@example.com
+    timeout_sec: 30
+    retries: 3

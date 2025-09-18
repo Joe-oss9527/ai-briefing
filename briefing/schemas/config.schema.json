@@ -218,17 +218,34 @@
                 "MarkdownV2",
                 "HTML"
               ],
-              "default": "None"
+              "default": "HTML"
             },
             "chunk_size": {
               "type": "integer",
               "minimum": 500,
-              "maximum": 4000,
-              "default": 3500
+              "maximum": 4096,
+              "default": 4096
             },
             "bot_token_env": {
               "type": "string",
               "default": "TELEGRAM_BOT_TOKEN"
+            },
+            "bot_token": {
+              "type": "string"
+            },
+            "disable_link_preview": {
+              "type": "boolean",
+              "default": true
+            },
+            "timeout_sec": {
+              "type": "number",
+              "minimum": 1,
+              "default": 30
+            },
+            "retries": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 3
             }
           }
         },
@@ -239,36 +256,41 @@
               "type": "boolean",
               "default": false
             },
-            "repo_url": {
+            "repo": {
               "type": "string"
             },
-            "repo_dir": {
-              "type": "string",
-              "default": "."
-            },
-            "branch": {
-              "type": "string",
-              "default": "main"
-            },
-            "author_name_env": {
-              "type": "string",
-              "default": "GIT_AUTHOR_NAME"
-            },
-            "author_email_env": {
-              "type": "string",
-              "default": "GIT_AUTHOR_EMAIL"
+            "token": {
+              "type": "string"
             },
             "token_env": {
               "type": "string",
               "default": "GITHUB_TOKEN"
             },
+            "branch": {
+              "type": "string",
+              "default": "main"
+            },
             "commit_message_prefix": {
               "type": "string",
               "default": "briefing"
             },
-            "pathspec": {
+            "committer_name": {
               "type": "string",
-              "default": ""
+              "default": "ai-briefing"
+            },
+            "committer_email": {
+              "type": "string",
+              "default": "noreply@example.com"
+            },
+            "timeout_sec": {
+              "type": "number",
+              "minimum": 1,
+              "default": 30
+            },
+            "retries": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 3
             }
           }
         }
