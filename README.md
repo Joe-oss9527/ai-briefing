@@ -6,7 +6,9 @@
 [![Python](https://img.shields.io/badge/Python-3.11-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-AI 每日简报通过 ML 驱动的处理管道，从公开来源（如 Hacker News、Twitter、Reddit）自动聚合信息，完成文本嵌入、去重、话题聚类与重排序后，由 LLM（Gemini/OpenAI 兼容）生成摘要与要点；同时保留原文链接，便于读者快速核验。内容按日归档、按月聚合，站内提供搜索与 PWA 体验，并通过 RSS 与 Telegram 多渠道触达。
+每天 3 分钟，速览全球 AI 关键信息。项目自动聚合公开权威源（Hacker News / Twitter / Reddit），事件聚类 + LLM 摘要，原文一键直达；支持网站、RSS 与 Telegram 订阅。
+
+AI 每日简报通过 ML 驱动的处理管道，从公开来源（如 Hacker News、Twitter、Reddit）自动聚合信息，完成文本嵌入、去重、话题聚类与重排序后，由 LLM（Gemini/OpenAI 兼容）生成摘要与要点；同时保留原文链接，便于读者快速核验。内容按日归档、按月聚合，并通过网站、RSS 与 Telegram 多渠道触达。
 
 ## ✨ 核心特性
 
@@ -17,6 +19,12 @@ AI 每日简报通过 ML 驱动的处理管道，从公开来源（如 Hacker Ne
 - **良好体验**：站内搜索、PWA、全球边缘加速部署
 
 > 说明：本项目为自动化聚合与生成，不进行人工采编，不直连封闭数据库；以公开可验证的信源为基础，并保留原文链接便于核验。
+
+## 🔗 在线渠道
+
+- 网站：https://aiheadline.news/
+- Telegram：https://t.me/ai_daily_briefing
+- 归档（月度文件）：https://github.com/Joe-oss9527/ai-briefing-archive
 
 ## 🚀 快速开始
 
@@ -75,7 +83,14 @@ make view-reddit   # 查看 Reddit 摘要
 REDDIT_CLIENT_ID=your_reddit_client_id
 REDDIT_CLIENT_SECRET=your_reddit_client_secret
 
-GEMINI_API_KEY=your_gemini_api_key
+# 至少配置一个 LLM 提供商（与各自 config 中 llm_provider 对应）
+# OpenAI 兼容（用于 ai-briefing-hackernews.yaml，默认 openai）：
+OPENAI_API_KEY=your_openai_api_key
+# 可选：自建或第三方 OpenAI 兼容服务
+OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Google Gemini（用于 ai-briefing-reddit.yaml，默认 gemini）：
+GEMINI_API_KEY=your_gemini_api_key  # 或 GOOGLE_API_KEY
 
 # Telegram 推送 (可选)
 TELEGRAM_BOT_TOKEN=your_bot_token
@@ -140,9 +155,8 @@ graph LR
 
 ### 服务架构
 - **TEI**: 默认容器化部署，可选本地 Metal GPU 加速
-- **RSSHub**: Twitter 数据代理服务
-- **Redis**: 缓存后端
-- **Browserless**: 无头浏览器服务
+- **RSSHub**: Twitter 数据代理服务（依赖 Redis + Browserless）
+- **Redis/Browserless**: RSSHub 的缓存与无头浏览器后端
 
 ## 📊 输出格式
 
@@ -221,4 +235,4 @@ docker compose version  # 应显示 v2.x.x
 
 ---
 
-**📧 反馈与支持**: 如有问题或建议，请创建 [Issue](https://github.com/yourrepo/ai-briefing/issues)
+**📧 反馈与支持**: 如有问题或建议，请创建 [Issue](https://github.com/Joe-oss9527/ai-briefing/issues)
