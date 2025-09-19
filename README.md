@@ -6,16 +6,17 @@
 [![Python](https://img.shields.io/badge/Python-3.11-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-AI-Briefing 是一个可扩展的智能简报生成平台，通过 ML 驱动的处理管道从多个数据源（Twitter、Reddit、Hacker News）聚合内容，利用 LLM（Gemini/OpenAI）自动生成高质量摘要。
+AI 每日简报通过 ML 驱动的处理管道，从公开来源（如 Hacker News、Twitter、Reddit）自动聚合信息，完成文本嵌入、去重、话题聚类与重排序后，由 LLM（Gemini/OpenAI 兼容）生成摘要与要点；同时保留原文链接，便于读者快速核验。内容按日归档、按月聚合，站内提供搜索与 PWA 体验，并通过 RSS 与 Telegram 多渠道触达。
 
 ## ✨ 核心特性
 
-- 🔄 **多源聚合**: 支持 Hacker News、Twitter、Reddit 等主流平台
-- 🧠 **ML 处理管道**: 文本嵌入 → 去重 → 聚类 → 重排序 → 摘要生成
-- ⚡ **TEI 嵌入服务**: 默认容器化部署，可选 Apple Silicon Metal GPU 加速
-- 🎯 **智能聚类**: HDBSCAN 算法自动识别话题，BGE-Reranker 优化相关性
-- 📡 **多渠道发布**: Telegram 推送、GitHub 备份、本地文件输出
-- 🚀 **一键部署**: 自动化安装与配置，开箱即用
+- **多源聚合**：支持 Hacker News / Twitter / Reddit 等公开渠道
+- **智能处理**：嵌入 → 去重 → 话题聚类（HDBSCAN）→ 重排序（BGE-Reranker）→ 摘要生成
+- **原文可追溯**：保留原始链接，便于快速核验与延伸阅读
+- **多渠道分发**：网站阅读、RSS 订阅、Telegram 推送；历史内容自动归档（GitHub / 月度）
+- **良好体验**：站内搜索、PWA、全球边缘加速部署
+
+> 说明：本项目为自动化聚合与生成，不进行人工采编，不直连封闭数据库；以公开可验证的信源为基础，并保留原文链接便于核验。
 
 ## 🚀 快速开始
 
