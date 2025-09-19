@@ -14,7 +14,8 @@ TEI_HEALTH_RETRIES ?= 10
 # AI-Briefing 便捷命令
 # 使用: make [命令]
 
-.PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit logs clean-output build check-services check-deps install-deps install-tei clean-tei download-models setup validate run
+.PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit view-all logs logs-all clean-output build check-services check-deps install-deps install-tei clean-tei download-models setup validate run \
+	use-tei-local use-tei-compose twitter-local twitter-compose hn-local hn-compose reddit-local reddit-compose all-local all-compose
 
 
 # 默认显示帮助
@@ -33,15 +34,24 @@ help:
 	@echo ""
 	@echo "数据收集:"
 	@echo "  make hn            - 收集 Hacker News 摘要"
+	@echo "  make hn-local      - 本地 TEI（一次性覆盖 env）运行 HN"
+	@echo "  make hn-compose    - 容器 TEI（一次性覆盖 env）运行 HN"
 	@echo "  make twitter       - 收集 AI 快讯 · Twitter 摘要"
+	@echo "  make twitter-local - 本地 TEI（一次性覆盖 env）运行 Twitter"
+	@echo "  make twitter-compose - 容器 TEI（一次性覆盖 env）运行 Twitter"
 	@echo "  make reddit        - 收集 Reddit GameDev 摘要"
+	@echo "  make reddit-local  - 本地 TEI（一次性覆盖 env）运行 Reddit"
+	@echo "  make reddit-compose - 容器 TEI（一次性覆盖 env）运行 Reddit"
 	@echo "  make all           - 并行收集所有数据源"
+	@echo "  make all-local     - 并行收集 (本地 TEI)"
+	@echo "  make all-compose   - 并行收集 (容器 TEI)"
 	@echo ""
 	@echo "查看输出:"
 	@echo "  make show          - 显示最新生成的文件"
 	@echo "  make view-hn       - 查看最新 HN 摘要内容"
 	@echo "  make view-twitter  - 查看最新 AI 快讯 · Twitter 摘要内容"
 	@echo "  make view-reddit   - 查看最新 Reddit 摘要内容"
+	@echo "  make view-all      - 汇总查看三源的最新摘要内容"
 	@echo ""
 	@echo "安装和配置:"
 	@echo "  make setup         - 🚀 一键安装所有依赖 (推荐新用户)"
@@ -57,6 +67,9 @@ help:
 	@echo "其他:"
 	@echo "  make logs          - 查看实时日志"
 	@echo "  make clean-output  - 清理 7 天前的输出文件"
+	@echo "  make logs-all      - 并行任务聚合日志 (tail -f)"
+	@echo "  make use-tei-local   - 切换到本地 TEI 模式 (修改 .env 并重启 TEI)"
+	@echo "  make use-tei-compose - 切换到容器 TEI 模式 (修改 .env 并重启 TEI)"
 	@echo "======================================"
 
 # ========== 服务管理 ==========
@@ -173,6 +186,38 @@ hn:
 	@echo "📁 输出位置: out/ai-briefing-hackernews/"
 	@ls -lht out/ai-briefing-hackernews/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
 
+hn-local:
+	@echo "======================================"
+	@echo "📰 开始收集 Hacker News 摘要 (local TEI)"
+	@echo "======================================"
+	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
+	@echo ""
+	@echo "⚙️  停止容器化 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=compose $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动并校验本地 TEI..."
+	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei >/dev/null
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-hackernews.yaml
+	@echo ""
+	@echo "✅ Hacker News 收集完成！"
+	@echo "📁 输出位置: out/ai-briefing-hackernews/"
+	@ls -lht out/ai-briefing-hackernews/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+
+hn-compose:
+	@echo "======================================"
+	@echo "📰 开始收集 Hacker News 摘要 (compose TEI)"
+	@echo "======================================"
+	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
+	@echo ""
+	@echo "⚙️  停止本地 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=local $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动容器化 TEI..."
+	@TEI_MODE=compose $(MAKE) start-tei >/dev/null
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-hackernews.yaml
+	@echo ""
+	@echo "✅ Hacker News 收集完成！"
+	@echo "📁 输出位置: out/ai-briefing-hackernews/"
+	@ls -lht out/ai-briefing-hackernews/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+
 twitter:
 	@echo "======================================"
 	@echo "🐦 开始收集 AI 快讯 · Twitter 摘要"
@@ -185,6 +230,38 @@ twitter:
 	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
 	@ls -lht out/ai-briefing-twitter-list/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
 
+twitter-local:
+	@echo "======================================"
+	@echo "🐦 开始收集 AI 快讯 · Twitter 摘要 (local TEI)"
+	@echo "======================================"
+	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
+	@echo ""
+	@echo "⚙️  停止容器化 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=compose $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动并校验本地 TEI..."
+	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei >/dev/null
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-twitter-list.yaml
+	@echo ""
+	@echo "✅ Twitter 收集完成！"
+	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
+	@ls -lht out/ai-briefing-twitter-list/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+
+twitter-compose:
+	@echo "======================================"
+	@echo "🐦 开始收集 AI 快讯 · Twitter 摘要 (compose TEI)"
+	@echo "======================================"
+	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
+	@echo ""
+	@echo "⚙️  停止本地 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=local $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动容器化 TEI..."
+	@TEI_MODE=compose $(MAKE) start-tei >/dev/null
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-twitter-list.yaml
+	@echo ""
+	@echo "✅ Twitter 收集完成！"
+	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
+	@ls -lht out/ai-briefing-twitter-list/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+
 reddit:
 	@echo "======================================"
 	@echo "🤖 开始收集 Reddit GameDev 摘要"
@@ -192,6 +269,38 @@ reddit:
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
 	@docker compose run --rm worker cli.py --config configs/ai-briefing-reddit.yaml
+	@echo ""
+	@echo "✅ Reddit 收集完成！"
+	@echo "📁 输出位置: out/ai-briefing-reddit/"
+	@ls -lht out/ai-briefing-reddit/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+
+reddit-local:
+	@echo "======================================"
+	@echo "🤖 开始收集 Reddit GameDev 摘要 (local TEI)"
+	@echo "======================================"
+	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
+	@echo ""
+	@echo "⚙️  停止容器化 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=compose $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动并校验本地 TEI..."
+	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei >/dev/null
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-reddit.yaml
+	@echo ""
+	@echo "✅ Reddit 收集完成！"
+	@echo "📁 输出位置: out/ai-briefing-reddit/"
+	@ls -lht out/ai-briefing-reddit/*.md 2>/dev/null | head -1 || echo "   (暂无输出文件)"
+
+reddit-compose:
+	@echo "======================================"
+	@echo "🤖 开始收集 Reddit GameDev 摘要 (compose TEI)"
+	@echo "======================================"
+	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
+	@echo ""
+	@echo "⚙️  停止本地 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=local $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动容器化 TEI..."
+	@TEI_MODE=compose $(MAKE) start-tei >/dev/null
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-reddit.yaml
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-reddit/"
@@ -211,6 +320,73 @@ all:
 	@echo ""
 	@echo "🎉 所有数据源收集完成！"
 	@make show
+
+all-local:
+	@echo "======================================"
+	@echo "🔄 并行收集所有数据源 (local TEI)"
+	@echo "======================================"
+	@echo "⚙️  停止容器化 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=compose $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动并校验本地 TEI..."
+	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei >/dev/null
+	@echo "正在启动收集任务..."
+	@echo "  • 日志文件:"
+	@echo "    - /tmp/brief_hn.log (HN)"
+	@echo "    - /tmp/brief_twitter.log (Twitter)"
+	@echo "    - /tmp/brief_reddit.log (Reddit)"
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-hackernews.yaml > /tmp/brief_hn.log 2>&1 & echo "  📰 Hacker News - PID $$!"
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-twitter-list.yaml > /tmp/brief_twitter.log 2>&1 & echo "  🐦 Twitter - PID $$!"
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-reddit.yaml > /tmp/brief_reddit.log 2>&1 & echo "  🤖 Reddit - PID $$!"
+	@echo ""
+	@echo "⏳ 等待所有任务完成..."
+	@wait
+	@echo ""
+	@echo "🎉 所有数据源收集完成！"
+	@make show
+	@echo "💡 可使用: make view-all 查看三源最新内容"
+
+all-compose:
+	@echo "======================================"
+	@echo "🔄 并行收集所有数据源 (compose TEI)"
+	@echo "======================================"
+	@echo "⚙️  停止本地 TEI（如在运行）以避免端口冲突..."
+	@TEI_MODE=local $(MAKE) stop-tei >/dev/null || true
+	@echo "⚙️  启动容器化 TEI..."
+	@TEI_MODE=compose $(MAKE) start-tei >/dev/null
+	@echo "正在启动收集任务..."
+	@echo "  • 日志文件:"
+	@echo "    - /tmp/brief_hn.log (HN)"
+	@echo "    - /tmp/brief_twitter.log (Twitter)"
+	@echo "    - /tmp/brief_reddit.log (Reddit)"
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-hackernews.yaml > /tmp/brief_hn.log 2>&1 & echo "  📰 Hacker News - PID $$!"
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-twitter-list.yaml > /tmp/brief_twitter.log 2>&1 & echo "  🐦 Twitter - PID $$!"
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-reddit.yaml > /tmp/brief_reddit.log 2>&1 & echo "  🤖 Reddit - PID $$!"
+	@echo ""
+	@echo "⏳ 等待所有任务完成..."
+	@wait
+	@echo ""
+	@echo "🎉 所有数据源收集完成！"
+	@make show
+	@echo "💡 可使用: make view-all 查看三源最新内容"
+
+# ========== 汇总查看三源内容 ==========
+
+view-all:
+	@echo "======================================"
+	@echo "📖 汇总查看三源的最新摘要内容"
+	@echo "======================================"
+	@echo ""
+	@echo "📰 Hacker News:"
+	@f=$$(ls -t out/ai-briefing-hackernews/*.md 2>/dev/null | head -1); \
+		if [ -n "$$f" ]; then echo "  文件: $$(basename $$f)"; echo ""; cat "$$f"; else echo "暂无内容"; fi
+	@echo ""
+	@echo "🐦 AI 快讯 · Twitter:"
+	@f=$$(ls -t out/ai-briefing-twitter-list/*.md 2>/dev/null | head -1); \
+		if [ -n "$$f" ]; then echo "  文件: $$(basename $$f)"; echo ""; cat "$$f"; else echo "暂无内容"; fi
+	@echo ""
+	@echo "🤖 Reddit GameDev:"
+	@f=$$(ls -t out/ai-briefing-reddit/*.md 2>/dev/null | head -1); \
+		if [ -n "$$f" ]; then echo "  文件: $$(basename $$f)"; echo ""; cat "$$f"; else echo "暂无内容"; fi
 
 # ========== 查看输出 ==========
 
@@ -255,6 +431,15 @@ logs:
 	@echo "📋 实时日志 (Ctrl+C 退出):"
 	@echo "======================================"
 	@docker compose logs -f worker --tail=50
+
+logs-all:
+	@echo "📋 并行任务日志 (Ctrl+C 退出):"
+	@echo "======================================"
+	@echo "  • /tmp/brief_hn.log"
+	@echo "  • /tmp/brief_twitter.log"
+	@echo "  • /tmp/brief_reddit.log"
+	@touch /tmp/brief_hn.log /tmp/brief_twitter.log /tmp/brief_reddit.log
+	@tail -n 20 -f /tmp/brief_hn.log /tmp/brief_twitter.log /tmp/brief_reddit.log
 
 clean-output:
 	@echo "🗑️  清理 7 天前的输出文件..."
@@ -377,13 +562,41 @@ setup:
 	@echo "  make show       - 查看生成的摘要文件"
 	@echo "======================================"
 
+# ========== TEI 模式快捷切换 ==========
+
+use-tei-local:
+	@echo "🔄 切换到本地 TEI 模式..."
+	@[ -f .env ] || (echo "❌ 未找到 .env 文件" && exit 1)
+	@awk 'BEGIN{OFS=""} \
+		/^TEI_MODE=/{print "TEI_MODE=local"; next} \
+		/^TEI_ORIGIN=/{print "TEI_ORIGIN=http://host.docker.internal:8080"; next} \
+		{print $$0}' .env > .env.tmp && mv .env.tmp .env
+	@echo "✅ .env 已更新: TEI_MODE=local, TEI_ORIGIN=http://host.docker.internal:8080"
+	@$(MAKE) stop-tei >/dev/null || true
+	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei
+	@$(MAKE) check-services
+	@echo "🎯 已切换为本地 TEI 模式"
+
+use-tei-compose:
+	@echo "🔄 切换到容器 TEI 模式..."
+	@[ -f .env ] || (echo "❌ 未找到 .env 文件" && exit 1)
+	@awk 'BEGIN{OFS=""} \
+		/^TEI_MODE=/{print "TEI_MODE=compose"; next} \
+		/^TEI_ORIGIN=/{print "TEI_ORIGIN=http://tei:3000"; next} \
+		{print $$0}' .env > .env.tmp && mv .env.tmp .env
+	@echo "✅ .env 已更新: TEI_MODE=compose, TEI_ORIGIN=http://tei:3000"
+	@$(MAKE) stop-tei >/dev/null || true
+	@TEI_MODE=compose $(MAKE) start-tei
+	@$(MAKE) check-services
+	@echo "🎯 已切换为容器 TEI 模式"
+
 test-config:
 	@echo "🔍 验证配置文件..."
-	@docker compose run --rm worker python -c "from utils import validate_config; import yaml; import sys; \
+	@docker compose run --rm worker python -c "from briefing.utils import validate_config; import yaml; \
 		configs = ['configs/ai-briefing-hackernews.yaml', 'configs/ai-briefing-twitter-list.yaml', 'configs/ai-briefing-reddit.yaml']; \
 		for c in configs: \
 			print(f'Checking {c}...'); \
-			with open(c) as f: cfg = yaml.safe_load(f); \
+			with open(c, 'r', encoding='utf-8') as f: cfg = yaml.safe_load(f); \
 			validate_config(cfg); \
 		print('✅ All configs valid!')"
 
