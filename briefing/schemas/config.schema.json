@@ -249,12 +249,16 @@
             }
           }
         },
-        "github_backup": {
+        "briefing_archive": {
           "type": "object",
           "properties": {
             "enabled": {
               "type": "boolean",
               "default": false
+            },
+            "provider": {
+              "type": "string",
+              "default": "github"
             },
             "repo": {
               "type": "string"

@@ -10,7 +10,7 @@ from typing import Dict, Any, List
 from briefing.sources import twitter_list_adapter, rss_adapter, reddit_adapter, hackernews_adapter
 from briefing.pipeline import run_processing_pipeline
 from briefing.summarizer import generate_summary
-from briefing.publisher import maybe_publish_telegram, maybe_github_backup
+from briefing.publisher import maybe_publish_telegram, maybe_briefing_archive
 from briefing.utils import write_output, validate_config, wait_for_service, get_logger
 
 logger = get_logger(__name__)
@@ -74,7 +74,7 @@ def _execute_pipeline(cfg: Dict[str, Any], run_id: str) -> None:
         logger.error("telegram publish failed: %s", e)
 
     try:
-        maybe_github_backup(generated_files, cfg["output"], briefing_id, run_id)
+        maybe_briefing_archive(generated_files, cfg["output"], briefing_id, run_id)
     except Exception as e:
         logger.error("github backup failed: %s", e)
 

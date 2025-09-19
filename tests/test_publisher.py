@@ -133,7 +133,12 @@ def test_github_artifact_store_upload(monkeypatch, tmp_path):
     assert payload["committer"] == {"name": "bot", "email": "bot@example.com"}
 
 
-def test_maybe_github_backup_requires_repo_and_token(caplog):
+def test_maybe_briefing_archive_requires_repo_and_token(caplog):
     caplog.set_level("ERROR")
-    publisher.maybe_github_backup(["foo.md"], {"github_backup": {"enabled": True}}, "id", "run")
+    publisher.maybe_briefing_archive(
+        ["foo.md"],
+        {"briefing_archive": {"enabled": True, "provider": "github"}},
+        "id",
+        "run",
+    )
     assert any("missing token or repo" in record.message for record in caplog.records)

@@ -43,8 +43,9 @@ output:
     timeout_sec: 30
     retries: 3
     bot_token: ''
-  github_backup:
+  briefing_archive:
     enabled: false
+    provider: github
     branch: main
     commit_message_prefix: ai-briefing-reddit
     repo: ''

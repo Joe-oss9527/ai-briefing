@@ -39,8 +39,9 @@ output:
     timeout_sec: 30
     retries: 3
     bot_token: ''
-  github_backup:
+  briefing_archive:
     enabled: true
+    provider: github
     commit_message_prefix: ai-briefing-twitter-list
     repo: Joe-oss9527/ai-briefing-archive
     token: ''

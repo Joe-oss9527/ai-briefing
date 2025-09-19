@@ -258,26 +258,31 @@ class GitHubArtifactStore:
             raise RuntimeError(f"github put failed: {put.status_code} {put.text[:256]}")
 
 
-def maybe_github_backup(generated_files: Iterable[str], output_cfg: dict, briefing_id: str, run_id: str) -> None:
-    gb = (output_cfg or {}).get("github_backup") or {}
-    if not gb.get("enabled"):
+def maybe_briefing_archive(generated_files: Iterable[str], output_cfg: dict, briefing_id: str, run_id: str) -> None:
+    archive_cfg = (output_cfg or {}).get("briefing_archive") or {}
+    if not archive_cfg.get("enabled"):
         return
 
-    token = gb.get("token") or os.getenv(gb.get("token_env", "GITHUB_TOKEN"), "")
-    repo = gb.get("repo") or gb.get("repo_url", "")
+    provider = (archive_cfg.get("provider") or "github").lower()
+    if provider != "github":
+        logger.error("briefing_archive: unsupported provider %s", provider)
+        return
+
+    token = archive_cfg.get("token") or os.getenv(archive_cfg.get("token_env", "GITHUB_TOKEN"), "")
+    repo = archive_cfg.get("repo") or archive_cfg.get("repo_url", "")
     cfg = GitHubArtifactStoreConfig(
         repo=repo,
         token=token,
-        branch=gb.get("branch", "main"),
-        commit_prefix=gb.get("commit_message_prefix", "briefing"),
-        committer_name=gb.get("committer_name", "ai-briefing"),
-        committer_email=gb.get("committer_email", "noreply@example.com"),
-        retries=int(gb.get("retries", 3)),
-        timeout_sec=float(gb.get("timeout_sec", 30.0)),
+        branch=archive_cfg.get("branch", "main"),
+        commit_prefix=archive_cfg.get("commit_message_prefix", "briefing"),
+        committer_name=archive_cfg.get("committer_name", "ai-briefing"),
+        committer_email=archive_cfg.get("committer_email", "noreply@example.com"),
+        retries=int(archive_cfg.get("retries", 3)),
+        timeout_sec=float(archive_cfg.get("timeout_sec", 30.0)),
     )
 
     if not (cfg.token and cfg.repo):
-        logger.error("github_backup: missing token or repo")
+        logger.error("briefing_archive: missing token or repo")
         return
 
     store = GitHubArtifactStore(cfg)
@@ -289,19 +294,19 @@ def maybe_github_backup(generated_files: Iterable[str], output_cfg: dict, briefi
     success = 0
     for path in files:
         if not path.exists():
-            logger.warning("github_backup: file not found %s", path)
+            logger.warning("briefing_archive: file not found %s", path)
             continue
         destination = f"{now:%Y}/{now:%m}/{briefing_id}/{path.name}"
         message = f"{cfg.commit_prefix}: {briefing_id} {path.name} run={run_id}"
         try:
             store.upload(path, destination, message)
         except Exception as exc:  # pragma: no cover - network errors are logged
-            logger.error("github_backup: failed upload %s error=%s", path.name, exc)
+            logger.error("briefing_archive: failed upload %s error=%s", path.name, exc)
         else:
             success += 1
-            logger.info("github_backup: uploaded %s", path.name)
+            logger.info("briefing_archive: uploaded %s", path.name)
 
-    logger.info("github_backup: uploaded %d/%d files", success, len(files))
+    logger.info("briefing_archive: uploaded %d/%d files", success, len(files))
 
 
 def _run_safe(cmd_args, cwd=None, env=None):
