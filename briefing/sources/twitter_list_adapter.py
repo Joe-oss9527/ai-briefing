@@ -1,10 +1,9 @@
 
 import os
 import requests
-from email.utils import parsedate_to_datetime
 from typing import List, Dict, Any
 
-from briefing.utils import clean_text, now_utc, get_logger
+from briefing.utils import clean_text, parse_datetime_safe, get_logger
 
 RSSHUB_ORIGIN = os.getenv("RSSHUB_ORIGIN", "http://rsshub:1200")
 logger = get_logger(__name__)
@@ -23,11 +22,22 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not text:
             continue
 
-        pub = entry.get("pubDate") or ""
-        try:
-            timestamp = parsedate_to_datetime(pub) if pub else now_utc()
-        except Exception:
-            timestamp = now_utc()
+        raw_ts = (
+            entry.get("date_published")
+            or entry.get("dateModified")
+            or entry.get("date_modified")
+            or entry.get("pubDate")
+            or entry.get("date")
+            or ""
+        )
+
+        timestamp = None
+        if raw_ts:
+            timestamp = parse_datetime_safe(raw_ts)
+
+        if timestamp is None:
+            logger.warning("twitter_list_adapter: drop item %s due to missing/invalid timestamp", entry.get("id"))
+            continue
 
         author = "Unknown"
         if isinstance(entry.get("author"), dict):
@@ -46,4 +56,3 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     logger.info("twitter_list_adapter fetched_items=%d", len(items))
     return items
-

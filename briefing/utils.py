@@ -10,19 +10,57 @@ from logging.handlers import TimedRotatingFileHandler
 from jsonschema import validate, Draft202012Validator
 from jsonschema.exceptions import ValidationError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from email.utils import parsedate_to_datetime
+from typing import Optional
 
 # ---------- Time helpers ----------
 
 def now_utc():
     return dt.datetime.now(dt.timezone.utc)
 
-def parse_datetime_safe(raw: str) -> dt.datetime:
-    for fmt in ("%a, %d %b %Y %H:%M:%S %z", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%d %H:%M:%S%z"):
+def parse_datetime_safe(raw: str) -> Optional[dt.datetime]:
+    """Best-effort parsing for timestamps from upstream feeds.
+
+    Returns a timezone-aware UTC datetime on success, otherwise ``None``.
+    """
+
+    if not raw:
+        return None
+
+    raw = raw.strip()
+
+    # Fast path: ISO 8601 (with optional trailing Z and fractional seconds)
+    iso_candidate = raw
+    if raw.endswith("Z"):
+        iso_candidate = raw[:-1] + "+00:00"
+
+    try:
+        dt_obj = dt.datetime.fromisoformat(iso_candidate)
+        if dt_obj.tzinfo is None:
+            dt_obj = dt_obj.replace(tzinfo=dt.timezone.utc)
+        return dt_obj.astimezone(dt.timezone.utc)
+    except ValueError:
+        pass
+
+    # RFC 2822 / email style timestamps
+    try:
+        dt_obj = parsedate_to_datetime(raw)
+        if dt_obj:
+            if dt_obj.tzinfo is None:
+                dt_obj = dt_obj.replace(tzinfo=dt.timezone.utc)
+            return dt_obj.astimezone(dt.timezone.utc)
+    except (TypeError, ValueError):
+        pass
+
+    # Legacy fallbacks for custom formats (with timezone)
+    for fmt in ("%Y-%m-%d %H:%M:%S%z", "%a, %d %b %Y %H:%M:%S %z"):
         try:
-            return dt.datetime.strptime(raw, fmt)
+            dt_obj = dt.datetime.strptime(raw, fmt)
+            return dt_obj.astimezone(dt.timezone.utc)
         except Exception:
             continue
-    return now_utc()
+
+    return None
 
 # ---------- Text helpers ----------
 
@@ -169,4 +207,3 @@ def wait_for_service(url: str, expect_status: int = 200, timeout: float = 5.0):
     r = requests.get(url, timeout=timeout)
     assert r.status_code == expect_status
     return True
-

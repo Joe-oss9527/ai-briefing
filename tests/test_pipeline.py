@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from briefing.pipeline import _near_duplicate_mask, _cluster
+from briefing.pipeline import _near_duplicate_mask, _cluster, run_processing_pipeline
 from briefing.utils import clean_text, validate_config
 
 
@@ -155,8 +155,6 @@ class TestTimeWindowFiltering:
     
     def test_recent_items_kept(self):
         """Test that recent items are kept."""
-        from briefing.pipeline import run_processing_pipeline
-        
         now = datetime.now(timezone.utc)
         recent = now - timedelta(hours=12)
         old = now - timedelta(hours=48)
@@ -192,12 +190,60 @@ class TestTimeWindowFiltering:
         # This would normally call external services, so we can't test it fully
         # but we can ensure it doesn't crash with valid input
         try:
-            bundles = run_processing_pipeline(items, config)
+            run_processing_pipeline(items, config)
         except Exception:
             # Expected to fail without services running
             pass
 
 
+    def test_invalid_timestamp_dropped(self, monkeypatch):
+        """Items with invalid timestamps should be ignored by the pipeline."""
+        import briefing.pipeline as pipeline
+
+        monkeypatch.setattr(pipeline, "_embed_texts", lambda texts: np.zeros((len(texts), 3)))
+        monkeypatch.setattr(pipeline, "_near_duplicate_mask", lambda embs, threshold: [True] * len(embs))
+        monkeypatch.setattr(pipeline, "_cluster", lambda embs, min_cluster_size: np.zeros(len(embs), dtype=int))
+        monkeypatch.setattr(pipeline, "_top_k_by_centroid", lambda embs, idxs, k=50: idxs)
+        monkeypatch.setattr(pipeline, "_cluster_centrality", lambda embs, idxs: (idxs[0], embs[idxs[0]]))
+        monkeypatch.setattr(pipeline, "_rerank", lambda model, query, candidates: list(range(len(candidates))))
+
+        now = datetime.now(timezone.utc)
+        recent = now - timedelta(hours=1)
+
+        items = [
+            {
+                "id": "ok",
+                "text": "Recent item",
+                "url": "http://example.com/1",
+                "author": "test",
+                "timestamp": recent.isoformat(),
+                "metadata": {}
+            },
+            {
+                "id": "bad",
+                "text": "Bad timestamp",
+                "url": "http://example.com/2",
+                "author": "test",
+                "timestamp": "not-a-date",
+                "metadata": {}
+            }
+        ]
+
+        config = {
+            "time_window_hours": 24,
+            "min_cluster_size": 1,
+            "sim_near_dup": 0.9,
+            "reranker_model": "stub-model",
+            "initial_topk": 10,
+            "max_candidates_per_cluster": 5
+        }
+
+        bundles = run_processing_pipeline(items, config)
+
+        assert len(bundles) == 1
+        assert len(bundles[0]["items"]) == 1
+        assert bundles[0]["items"][0]["id"] == "ok"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

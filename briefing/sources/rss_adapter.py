@@ -18,8 +18,17 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
                 continue
 
             ts = parse_datetime_safe(
-                e.get("published") or e.get("updated") or ""
+                e.get("date_published")
+                or e.get("dateModified")
+                or e.get("date_modified")
+                or e.get("published")
+                or e.get("updated")
+                or ""
             )
+
+            if ts is None:
+                logger.warning("rss_adapter: drop item %s due to missing/invalid timestamp", e.get("id") or e.get("link"))
+                continue
 
             items.append({
                 "id": e.get("id") or e.get("link") or e.get("title"),
@@ -32,4 +41,3 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     logger.info("rss_adapter fetched_items=%d", len(items))
     return items
-

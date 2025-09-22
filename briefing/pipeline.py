@@ -12,7 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import hdbscan
 from sentence_transformers import CrossEncoder
 
-from briefing.utils import now_utc, get_logger
+from briefing.utils import now_utc, get_logger, parse_datetime_safe
 
 TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://tei:3000")
 LID_MODEL_PATH = os.getenv("LID_MODEL_PATH", "/workspace/lid.176.bin")
@@ -192,20 +192,27 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
     horizon = now_utc().timestamp() - cfg["time_window_hours"] * 3600
     filtered = []
     items_too_old = 0
+    items_invalid_ts = 0
     
     for it in raw_items:
         try:
             ts = it["timestamp"]
             if isinstance(ts, str):
-                v = ts[:-1] + "+00:00" if ts.endswith("Z") else ts
-                t = dt.datetime.fromisoformat(v).timestamp()
+                parsed_dt = parse_datetime_safe(ts)
+                if parsed_dt is None:
+                    raise ValueError("invalid timestamp string")
+                t = parsed_dt.timestamp()
+            elif isinstance(ts, dt.datetime):
+                parsed_dt = ts if ts.tzinfo else ts.replace(tzinfo=dt.timezone.utc)
+                t = parsed_dt.timestamp()
             elif isinstance(ts, (int, float)):
                 t = float(ts)
             else:
-                t = now_utc().timestamp()
+                raise TypeError(f"unsupported timestamp type: {type(ts)}")
         except Exception as e:
             logger.warning("Failed to parse timestamp for item %s: %s", it.get("id"), str(e))
-            t = now_utc().timestamp()
+            items_invalid_ts += 1
+            continue
         
         if t >= horizon:
             filtered.append(it)
@@ -214,8 +221,10 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
             logger.debug("Item %s filtered: too old (age=%.1f hours)", 
                         it.get("id"), (now_utc().timestamp() - t) / 3600)
     
-    logger.info("Time filter: kept %d items, filtered %d old items (window=%d hours)", 
-                len(filtered), items_too_old, cfg["time_window_hours"])
+    logger.info(
+        "Time filter: kept %d items, filtered %d old items, dropped %d invalid timestamps (window=%d hours)",
+        len(filtered), items_too_old, items_invalid_ts, cfg["time_window_hours"]
+    )
 
     if not filtered:
         logger.info("pipeline: no items after time_window filter")
