@@ -5,6 +5,7 @@ import pytest
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ.setdefault("LOG_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "_logs"))
 
 from briefing.publisher import _run_safe
 from briefing.utils import redact_secrets
@@ -124,4 +125,3 @@ class TestEmptyBriefingHandling:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

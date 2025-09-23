@@ -17,6 +17,28 @@ TEI_HEALTH_RETRIES ?= 10
 .PHONY: help start stop restart status start-tei stop-tei hn twitter reddit all show view-hn view-twitter view-reddit view-all logs logs-all clean-output build check-services check-deps install-deps install-tei clean-tei download-models setup validate run \
 	use-tei-local use-tei-compose twitter-local twitter-compose hn-local hn-compose reddit-local reddit-compose all-local all-compose
 
+# 透传 CLI 参数，可通过 MULTI_STAGE=1 等变量控制
+CLI_ARGS ?=
+
+ifeq ($(MULTI_STAGE),1)
+CLI_ARGS += --multi-stage
+endif
+ifeq ($(SINGLE_STAGE),1)
+CLI_ARGS += --single-stage
+endif
+ifeq ($(AGENTIC_SECTION),1)
+CLI_ARGS += --agentic-section
+endif
+ifeq ($(NO_AGENTIC_SECTION),1)
+CLI_ARGS += --no-agentic-section
+endif
+ifeq ($(BRIEF_LITE),1)
+CLI_ARGS += --brief-lite
+endif
+ifeq ($(NO_BRIEF_LITE),1)
+CLI_ARGS += --no-brief-lite
+endif
+
 
 # 默认显示帮助
 help:
@@ -36,7 +58,7 @@ help:
 	@echo "  make hn            - 收集 Hacker News 摘要"
 	@echo "  make hn-local      - 本地 TEI（一次性覆盖 env）运行 HN"
 	@echo "  make hn-compose    - 容器 TEI（一次性覆盖 env）运行 HN"
-	@echo "  make twitter       - 收集 AI 快讯 · Twitter 摘要"
+	@echo "  make twitter       - 收集 AI 快讯 · Twitter 摘要 (可配合 MULTI_STAGE=1 等变量)"
 	@echo "  make twitter-local - 本地 TEI（一次性覆盖 env）运行 Twitter"
 	@echo "  make twitter-compose - 容器 TEI（一次性覆盖 env）运行 Twitter"
 	@echo "  make reddit        - 收集 Reddit GameDev 摘要"
@@ -180,7 +202,7 @@ hn:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker cli.py --config configs/ai-briefing-hackernews.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-hackernews.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-hackernews/"
@@ -196,7 +218,7 @@ hn-local:
 	@TEI_MODE=compose $(MAKE) stop-tei >/dev/null || true
 	@echo "⚙️  启动并校验本地 TEI..."
 	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei >/dev/null
-	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-hackernews.yaml
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-hackernews.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-hackernews/"
@@ -212,7 +234,7 @@ hn-compose:
 	@TEI_MODE=local $(MAKE) stop-tei >/dev/null || true
 	@echo "⚙️  启动容器化 TEI..."
 	@TEI_MODE=compose $(MAKE) start-tei >/dev/null
-	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-hackernews.yaml
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-hackernews.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Hacker News 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-hackernews/"
@@ -224,7 +246,7 @@ twitter:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker cli.py --config configs/ai-briefing-twitter-list.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-twitter-list.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
@@ -240,7 +262,7 @@ twitter-local:
 	@TEI_MODE=compose $(MAKE) stop-tei >/dev/null || true
 	@echo "⚙️  启动并校验本地 TEI..."
 	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei >/dev/null
-	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-twitter-list.yaml
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-twitter-list.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
@@ -256,7 +278,7 @@ twitter-compose:
 	@TEI_MODE=local $(MAKE) stop-tei >/dev/null || true
 	@echo "⚙️  启动容器化 TEI..."
 	@TEI_MODE=compose $(MAKE) start-tei >/dev/null
-	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-twitter-list.yaml
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-twitter-list.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Twitter 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-twitter-list/"
@@ -268,7 +290,7 @@ reddit:
 	@echo "======================================"
 	@echo "⏳ 处理阶段: 获取数据 → 文本嵌入 → 聚类分析 → 生成摘要"
 	@echo ""
-	@docker compose run --rm worker cli.py --config configs/ai-briefing-reddit.yaml
+	@docker compose run --rm worker cli.py --config configs/ai-briefing-reddit.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-reddit/"
@@ -284,7 +306,7 @@ reddit-local:
 	@TEI_MODE=compose $(MAKE) stop-tei >/dev/null || true
 	@echo "⚙️  启动并校验本地 TEI..."
 	@TEI_MODE=local TEI_HEALTH_URL=http://localhost:8080/health $(MAKE) start-tei >/dev/null
-	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-reddit.yaml
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-reddit.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-reddit/"
@@ -300,7 +322,7 @@ reddit-compose:
 	@TEI_MODE=local $(MAKE) stop-tei >/dev/null || true
 	@echo "⚙️  启动容器化 TEI..."
 	@TEI_MODE=compose $(MAKE) start-tei >/dev/null
-	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-reddit.yaml
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-reddit.yaml $(CLI_ARGS)
 	@echo ""
 	@echo "✅ Reddit 收集完成！"
 	@echo "📁 输出位置: out/ai-briefing-reddit/"
@@ -334,9 +356,9 @@ all-local:
 	@echo "    - /tmp/brief_hn.log (HN)"
 	@echo "    - /tmp/brief_twitter.log (Twitter)"
 	@echo "    - /tmp/brief_reddit.log (Reddit)"
-	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-hackernews.yaml > /tmp/brief_hn.log 2>&1 & echo "  📰 Hacker News - PID $$!"
-	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-twitter-list.yaml > /tmp/brief_twitter.log 2>&1 & echo "  🐦 Twitter - PID $$!"
-	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-reddit.yaml > /tmp/brief_reddit.log 2>&1 & echo "  🤖 Reddit - PID $$!"
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-hackernews.yaml $(CLI_ARGS) > /tmp/brief_hn.log 2>&1 & echo "  📰 Hacker News - PID $$!"
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-twitter-list.yaml $(CLI_ARGS) > /tmp/brief_twitter.log 2>&1 & echo "  🐦 Twitter - PID $$!"
+	@docker compose run --rm -e TEI_MODE=local -e TEI_ORIGIN=http://host.docker.internal:8080 worker cli.py --config configs/ai-briefing-reddit.yaml $(CLI_ARGS) > /tmp/brief_reddit.log 2>&1 & echo "  🤖 Reddit - PID $$!"
 	@echo ""
 	@echo "⏳ 等待所有任务完成..."
 	@wait
@@ -358,9 +380,9 @@ all-compose:
 	@echo "    - /tmp/brief_hn.log (HN)"
 	@echo "    - /tmp/brief_twitter.log (Twitter)"
 	@echo "    - /tmp/brief_reddit.log (Reddit)"
-	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-hackernews.yaml > /tmp/brief_hn.log 2>&1 & echo "  📰 Hacker News - PID $$!"
-	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-twitter-list.yaml > /tmp/brief_twitter.log 2>&1 & echo "  🐦 Twitter - PID $$!"
-	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-reddit.yaml > /tmp/brief_reddit.log 2>&1 & echo "  🤖 Reddit - PID $$!"
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-hackernews.yaml $(CLI_ARGS) > /tmp/brief_hn.log 2>&1 & echo "  📰 Hacker News - PID $$!"
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-twitter-list.yaml $(CLI_ARGS) > /tmp/brief_twitter.log 2>&1 & echo "  🐦 Twitter - PID $$!"
+	@docker compose run --rm -e TEI_MODE=compose -e TEI_ORIGIN=http://tei:3000 worker cli.py --config configs/ai-briefing-reddit.yaml $(CLI_ARGS) > /tmp/brief_reddit.log 2>&1 & echo "  🤖 Reddit - PID $$!"
 	@echo ""
 	@echo "⏳ 等待所有任务完成..."
 	@wait
@@ -608,4 +630,4 @@ validate:
 	$(PY) scripts/validate_config.py --config $(CONFIG)
 
 run:
-	$(PY) cli.py --config $(CONFIG)
+	$(PY) cli.py --config $(CONFIG) $(CLI_ARGS)

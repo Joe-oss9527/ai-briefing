@@ -127,6 +127,34 @@
           "type": "integer",
           "minimum": 10,
           "default": 300
+        },
+        "multi_stage": {
+          "type": "boolean",
+          "default": false
+        },
+        "agentic_section": {
+          "type": "boolean"
+        },
+        "brief_lite": {
+          "type": "boolean"
+        },
+        "max_bullets_per_topic": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "default": 4
+        },
+        "scoring_weights": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "actionability": {"type": "number"},
+            "novelty": {"type": "number"},
+            "impact": {"type": "number"},
+            "reusability": {"type": "number"},
+            "reliability": {"type": "number"},
+            "agentic_bonus": {"type": "number"}
+          }
         }
       }
     },

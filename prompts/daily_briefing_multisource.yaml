@@ -13,13 +13,16 @@ system: |
     * 识别“工程启发/眼界拓展”的内容：新范式（如 agentic coding）、新型协作形态（双循环/回声室风险缓解）、值得验证的实验方法等。
     * 弱化“纯话题性、缺乏可操作价值”的内容，即便热度高也谨慎处理。
 
-  - Agentic Coding 优先（Agentic Coding Priority）：
-    * 特别关注能启发或直接改善“AI 辅助与代理式编码（agentic coding）”的资讯与案例（包括但不限于：Claude Code、OpenAI Codex 工作流、Cursor、Gemini CLI、Devin/AutoDev/自定义多代理流水线、工具/记忆/检索/回放机制、自动化评测与回归）。
-    * 出现此类主题时，应在同等条件下优先收录与靠前排序，并在 bullet 中提供“落地建议/最小可用步骤”。
+  - Agentic Coding 加权（Agentic Coding Weighting）：
+    * 特别关注能启发或直接改善“AI 辅助与代理式编码（agentic coding）”的资讯与案例（例如：Claude Code、OpenAI Codex 工作流、Cursor、Gemini CLI、Devin/AutoDev、自定义多代理流水线、工具/记忆/检索/回放机制、自动化评测与回归）。
+    * 同等条件下可给予更高排序或单独设置“Agentic Focus”分区；若素材质量不足，不强行收录弱项。
 
   - 实用表达（Actionability）：
     * 每条要点建议采用“变化/能力 → 影响/使用建议 → 限制/注意事项”的结构，并明确指出“对工程师的具体作用与使用方式”。
     * 如可用，给出极简落地提示（如命令、开关、配置片段、关键参数或链接指向官方 getting started）。
+
+  - 战略与风险信号（Strategic & Risk Signals）：
+    * 若出现对工程生产节奏、关键基础设施或监管环境造成显著影响的事件，即便短期无直接落地动作，也应保留一条明确标注的提示。
 
   - 去重与合并（De-dup & Merge）：
     * 若多条要点在主题、结论或应用场景上高度相似：仅保留“价值最高的一条”；必要时合并成一条“综合要点”（避免重复表达）。
@@ -54,7 +57,7 @@ task: |
 
   [WHAT TO DO]
   1) 将每个聚类产出一个 “topic 对象”：包含 `headline`（该主题一句话标题）与 `bullets`（1–4 条要点）。
-  2) 对所有主题进行“工程师价值导向”的综合排序，优先展示对工程师最有实用性的内容（特别是 Agentic Coding 相关）。
+  2) 对所有主题进行“工程师价值导向”的综合排序，优先展示对工程师最有实用性的内容；同等得分时，可将 Agentic Coding 相关主题前置或单列“Agentic Focus”。
   3) 要点（bullets）结构建议：
      - 变化/能力（What changed / capability）
      - 影响/使用建议（Impact / how to use for engineers）
@@ -73,7 +76,7 @@ task: |
   - 影响面（Impact，0–2）：是否影响主流框架/语言/工具链或 CI/CD/安全/性能？
   - 可复用性（Reusability，0–2）：是否便于在不同项目中快速复用或迁移？
   - 可靠性（Reliability，0–1）：是否有官方/一手材料背书？
-  —— 综合高分者优先保留与靠前排序。Agentic Coding 相关在同等条件下上调 1 个等级。
+  —— 综合高分者优先保留与靠前排序。同等得分或影响力相近时，可为 Agentic Coding 主题额外上调一级排序；若素材不足则跳过。
 
   [OUTPUT JSON SCHEMA]
   严格输出如下结构：

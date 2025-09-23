@@ -329,7 +329,7 @@ def _run_safe(cmd_args, cwd=None, env=None):
     if not cmd_args or len(cmd_args) < 2:
         raise ValueError("Invalid command format")
     if cmd_args[0] != "git":
-        raise ValueError(f"Only git commands are allowed, got: {cmd_args[0]}")
+        raise ValueError(f"Command not allowed: only git commands are permitted, got: {cmd_args[0]}")
     if cmd_args[1] not in allowed:
         raise ValueError(f"Git subcommand '{cmd_args[1]}' not allowed")
 

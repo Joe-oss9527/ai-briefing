@@ -7,10 +7,14 @@ source:
 processing:
   time_window_hours: 24
   min_cluster_size: 3
-  sim_near_dup: 0.9
+  sim_near_dup: 0.91
   reranker_model: BAAI/bge-reranker-v2-m3
   initial_topk: 1000
   max_candidates_per_cluster: 300
+  multi_stage: false
+  agentic_section: true
+  brief_lite: false
+  max_bullets_per_topic: 4
 summarization:
   prompt_file: prompts/daily_briefing_multisource.yaml
   temperature: 0.2
