@@ -1,0 +1,17 @@
+[
+  {
+    "cluster_id": "cluster-rd-solo",
+    "items": [
+      {
+        "item_id": "rd-10",
+        "title": "Reddit: self-hosted CI tips",
+        "text": "Guide for caching container builds to speed tests.",
+        "url": "https://reddit.com/r/devops/comments/ci",
+        "source": "reddit",
+        "timestamp": "2025-09-21T23:00:00Z"
+      }
+    ],
+    "canonical_links": ["https://reddit.com/r/devops/comments/ci"],
+    "language": "en"
+  }
+]

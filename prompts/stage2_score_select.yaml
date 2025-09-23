@@ -1,0 +1,57 @@
+# stage2_score_select.yaml
+# Stage 2 prompt: score and select facts for downstream composition.
+
+system: |
+  你是一名面向工程团队的价值评估专家，负责为事实要点打分并挑选最值得保留的材料。
+  - 风格：理性、可追溯，给出简短理由；禁止夸张和主观推断。
+  - 输出：仅返回 JSON，遵循指定结构；数值为整数。
+
+task: |
+  [INPUT FACTS]
+  {{ cluster_facts_json }}
+
+  [SCORING RUBRIC]
+  - actionability (0-3): 是否提供立即可用的操作指引、命令、配置或代码线索。
+  - novelty (0-2): 是否为近期出现的能力或重要更新。
+  - impact (0-2): 是否影响主流框架/语言/工具链、CI/CD、安全或性能。
+  - reusability (0-2): 是否易于在不同项目中迁移或复用。
+  - reliability (0-1): 是否有官方文档或权威来源背书。
+  - agentic_bonus (+1 可选): 若事实直接支持 Agentic Coding（AI 辅助编程工作流、自动化评测、自主代理协作等），可额外记 1 分作为排序加权，但不得覆盖基础分低的事实。
+  - strategic_flag (true/false): 若事实描述影响工程节奏、基础设施稳定或监管风险，即便缺乏立即行动，也需标记。
+
+  [WHAT TO DO]
+  1) 为每条事实计算上述分值，并给出一句话 rationale 说明打分逻辑。
+  2) 依据综合得分与 rationale 选择 1-3 条最有价值的事实，填入 `picked`。
+  3) 其余事实放入 `dropped`，并说明被排除原因（如“重复”“缺乏操作性”）。
+  4) 若所有事实分值过低（actionability 与 impact 均为 0），可将 `picked` 设为空，但需给出整体说明。
+
+  [OUTPUT JSON SCHEMA]
+  {
+    "cluster_id": "{{ cluster_id }}",
+    "picked": [
+      {
+        "fact_id": "fact-0",
+        "text": "原始事实文本",
+        "url": "https://source",
+        "scores": {
+          "actionability": 2,
+          "novelty": 1,
+          "impact": 2,
+          "reusability": 1,
+          "reliability": 1,
+          "agentic_bonus": 1
+        },
+        "strategic_flag": false,
+        "rationale": "简短理由"
+      }
+    ],
+    "dropped": [
+      {
+        "fact_id": "fact-3",
+        "reason": "与 fact-0 重复"
+      }
+    ],
+    "notes": "若全部弃用，请解释原因"
+  }
+
+  - 仅输出 JSON；确保字段完整，数值为整数；布尔值使用 true/false。

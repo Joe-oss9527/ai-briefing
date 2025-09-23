@@ -11,7 +11,8 @@ from jsonschema import validate, Draft202012Validator
 from jsonschema.exceptions import ValidationError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from email.utils import parsedate_to_datetime
-from typing import Optional
+from typing import Optional, Any
+from pydantic import TypeAdapter, HttpUrl
 
 # ---------- Time helpers ----------
 
@@ -72,6 +73,34 @@ def clean_text(html_or_text: str) -> str:
     text = h.handle(html_or_text or "")
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+# ---------- URL helpers ----------
+
+_HTTP_URL_ADAPTER = TypeAdapter(HttpUrl)
+
+def normalize_http_url(value: Any) -> Optional[str]:
+    """Try to normalize a value into a valid http(s) URL string.
+
+    - Trims whitespace
+    - Adds scheme when missing (defaults to https://)
+    - Supports protocol-relative form (//example.com)
+    Returns normalized string on success; otherwise None.
+    """
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if s.startswith("//"):
+        s = "https:" + s
+    # If no scheme present, assume https
+    if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", s):
+        s = "https://" + s
+    try:
+        _HTTP_URL_ADAPTER.validate_python(s)
+        return s
+    except Exception:
+        return None
 
 # ---------- Config validation ----------
 
@@ -194,9 +223,15 @@ def redact_secrets(s: str) -> str:
     
     # Simple regex patterns for common cases
     import re
-    redacted = re.sub(r"x-access-token:[^@]+@", "x-access-token:***@", redacted)
-    redacted = re.sub(r"ghp_[A-Za-z0-9]{36}", "ghp_***", redacted)
-    
+    pattern_flags = re.IGNORECASE
+    redacted = re.sub(r"x-access-token:[^@]+@", "x-access-token:***@", redacted, flags=pattern_flags)
+    redacted = re.sub(r"ghp_[A-Za-z0-9]{20,}", "ghp_***", redacted, flags=pattern_flags)
+    redacted = re.sub(r"sk-[A-Za-z0-9-]{10,}", "sk-***", redacted, flags=pattern_flags)
+    redacted = re.sub(r"(api_key=)([^\s&]+)", r"\1***", redacted, flags=pattern_flags)
+    redacted = re.sub(r"(password=)([^\s&]+)", r"\1***", redacted, flags=pattern_flags)
+    redacted = re.sub(r"(token=)([^\s&]+)", r"\1***", redacted, flags=pattern_flags)
+    redacted = re.sub(r"(bearer\s+)[A-Za-z0-9._-]+", r"\1***", redacted, flags=pattern_flags)
+
     return redacted
 
 # ---------- Service health wait ----------

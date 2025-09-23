@@ -3,7 +3,7 @@ import os
 import requests
 from typing import List, Dict, Any
 
-from briefing.utils import clean_text, parse_datetime_safe, get_logger
+from briefing.utils import clean_text, parse_datetime_safe, get_logger, normalize_http_url
 
 RSSHUB_ORIGIN = os.getenv("RSSHUB_ORIGIN", "http://rsshub:1200")
 logger = get_logger(__name__)
@@ -45,10 +45,17 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
         elif isinstance(entry.get("author"), str):
             author = entry["author"]
 
+        # Prefer explicit url; fallback to link if present; normalize
+        url_raw = entry.get("url") or entry.get("link")
+        url_val = normalize_http_url(url_raw)
+        if not url_val:
+            logger.warning("twitter_list_adapter: drop item %s due to missing/invalid url", entry.get("id"))
+            continue
+
         items.append({
-            "id": entry.get("id") or entry.get("url"),
+            "id": entry.get("id") or url_val,
             "text": text,
-            "url": entry.get("url", ""),
+            "url": url_val,
             "author": author,
             "timestamp": timestamp.isoformat(),
             "metadata": {"source": "twitter"}

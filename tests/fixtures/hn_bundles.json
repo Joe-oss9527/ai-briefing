@@ -1,0 +1,17 @@
+[
+  {
+    "cluster_id": "cluster-hn-solo",
+    "items": [
+      {
+        "item_id": "hn-10",
+        "title": "Hacker News: New build pipeline",
+        "text": "A new build pipeline reduces cold starts by 40%.",
+        "url": "https://example.com/hn-build",
+        "source": "hackernews",
+        "timestamp": "2025-09-22T07:30:00Z"
+      }
+    ],
+    "canonical_links": ["https://example.com/hn-build"],
+    "language": "en"
+  }
+]
