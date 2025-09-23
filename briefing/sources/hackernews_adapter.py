@@ -3,7 +3,7 @@ import time
 import datetime as dt
 import requests
 from typing import List, Dict, Any
-from briefing.utils import clean_text, get_logger
+from briefing.utils import clean_text, get_logger, normalize_http_url
 
 logger = get_logger(__name__)
 
@@ -39,13 +39,20 @@ def fetch(source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
             continue
         title = js.get("title") or ""
         text = js.get("text") or ""
-        url = js.get("url") or f"https://news.ycombinator.com/item?id={sid}"
+        # URL processing with validation
+        raw_url = js.get("url") or f"https://news.ycombinator.com/item?id={sid}"
+        url = normalize_http_url(raw_url)
+        if not url:
+            logger.warning("hackernews_adapter: drop item %s due to invalid url", sid)
+            continue
+
         author = js.get("by") or "Unknown"
         created = js.get("time", int(time.time()))
         ts = dt.datetime.utcfromtimestamp(created).replace(tzinfo=dt.timezone.utc)
 
         content = clean_text(f"{title}\n\n{text}")
         if not content:
+            logger.warning("hackernews_adapter: drop item %s due to empty content after cleaning", sid)
             continue
 
         items.append({

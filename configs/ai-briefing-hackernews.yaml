@@ -6,8 +6,8 @@ source:
   hn_limit: 60
 processing:
   time_window_hours: 24
-  min_cluster_size: 3
-  sim_near_dup: 0.90
+  min_cluster_size: 2
+  sim_near_dup: 0.93
   reranker_model: BAAI/bge-reranker-v2-m3
   initial_topk: 1000
   max_candidates_per_cluster: 300
@@ -26,7 +26,7 @@ summarization:
     gemini:
       api_version: v1
   openai_model: gpt-4o-mini
-  llm_provider: openai
+  llm_provider: gemini
   gemini_model: gemini-2.5-flash
   target_item_count: 10
 output:
@@ -36,7 +36,7 @@ output:
   - json
   telegram:
     enabled: true
-    chat_id: '@your_channel_or_chat_id'
+    chat_id: '@ai_daily_briefing'
     parse_mode: HTML
     chunk_size: 3500
     bot_token_env: TELEGRAM_BOT_TOKEN
@@ -49,7 +49,7 @@ output:
     provider: github
     branch: main
     commit_message_prefix: ai-briefing-hackernews
-    repo: https://github.com/yourname/briefing-backup.git
+    repo: Joe-oss9527/ai-briefing-archive
     token: ''
     token_env: GITHUB_TOKEN
     committer_name: ai-briefing
