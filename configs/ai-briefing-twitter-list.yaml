@@ -2,7 +2,7 @@ briefing_id: ai-briefing-twitter-list
 briefing_title: AI 快讯 · Twitter
 source:
   type: twitter_list
-  id: '1933036352834281792'
+  id: '1602502639287435265'
 processing:
   time_window_hours: 24
   min_cluster_size: 2
