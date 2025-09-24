@@ -159,6 +159,7 @@ def _embed_texts(
     def approx_tokens(payload: str) -> int:
         return max(1, int(math.ceil(len(payload) / chars_per_token)))
 
+    # queue entries: (original_index, truncated_text, force_single)
     queue: deque[Tuple[int, str, bool]] = deque(processed_texts)
     all_embs: List[Optional[np.ndarray]] = [None] * len(texts)
     batches_sent = 0
