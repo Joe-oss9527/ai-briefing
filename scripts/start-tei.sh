@@ -35,4 +35,4 @@ exec "$TEI_BIN" \
     --port "$PORT" \
     --revision main \
     --max-client-batch-size 32 \
-    --max-batch-tokens 8192
+    --max-batch-tokens 8192  # 与 EMBED_MAX_BATCH_TOKENS 默认值保持一致

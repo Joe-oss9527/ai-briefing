@@ -1,11 +1,17 @@
 
 """Tests for the processing pipeline."""
 
-import pytest
-import sys
 import os
-import numpy as np
+import sys
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+_TEST_LOG_DIR = Path(__file__).resolve().parent / "_logs"
+os.environ.setdefault("LOG_DIR", str(_TEST_LOG_DIR))
+_TEST_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -200,7 +206,13 @@ class TestTimeWindowFiltering:
         """Items with invalid timestamps should be ignored by the pipeline."""
         import briefing.pipeline as pipeline
 
-        monkeypatch.setattr(pipeline, "_embed_texts", lambda texts: np.zeros((len(texts), 3)))
+        captured_kwargs = {}
+
+        def fake_embed(texts, **kwargs):
+            captured_kwargs.update(kwargs)
+            return np.zeros((len(texts), 3))
+
+        monkeypatch.setattr(pipeline, "_embed_texts", fake_embed)
         monkeypatch.setattr(pipeline, "_near_duplicate_mask", lambda embs, threshold: [True] * len(embs))
         monkeypatch.setattr(pipeline, "_cluster", lambda embs, min_cluster_size: np.zeros(len(embs), dtype=int))
         monkeypatch.setattr(pipeline, "_top_k_by_centroid", lambda embs, idxs, k=50: idxs)
@@ -239,10 +251,12 @@ class TestTimeWindowFiltering:
         }
 
         bundles = run_processing_pipeline(items, config)
-
+        
         assert len(bundles) == 1
         assert len(bundles[0]["items"]) == 1
         assert bundles[0]["items"][0]["id"] == "ok"
+        assert captured_kwargs["max_batch_tokens"] > 0
+        assert "chars_per_token" in captured_kwargs
 
 
 if __name__ == "__main__":

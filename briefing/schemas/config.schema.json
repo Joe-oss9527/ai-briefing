@@ -144,6 +144,27 @@
           "maximum": 4,
           "default": 4
         },
+        "embedding": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_batch_tokens": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 8192
+            },
+            "max_item_chars": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 6000
+            },
+            "chars_per_token": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "default": 4.0
+            }
+          }
+        },
         "scoring_weights": {
           "type": "object",
           "additionalProperties": false,

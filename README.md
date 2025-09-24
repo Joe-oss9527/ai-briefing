@@ -113,6 +113,23 @@ HF_TOKEN=your_huggingface_token
 - **local (备用)**：设置 `TEI_MODE=local` 并将 `TEI_ORIGIN` 改为 `http://host.docker.internal:8080`，`make start` 会调用 `scripts/start-tei.sh` 在宿主机启动 Metal GPU 加速的 `text-embeddings-router`。
 - 切换模式后建议运行 `make check-services`，确认 `http://localhost:8080/health` 返回正常。
 
+#### 嵌入批处理安全阈值
+
+- `EMBED_MAX_BATCH_TOKENS`：单次发送到 TEI 的最大 token 数（默认 8192，与 `scripts/start-tei.sh` 中 `--max-batch-tokens` 一致）。
+- `EMBED_MAX_ITEM_CHARS`：单条内容送入嵌入服务前的最大字符数（默认 6000，超出部分自动截断）。
+- `EMBED_CHAR_PER_TOKEN`：字符到 token 的估算因子（默认 4.0，可按模型特性微调）。
+- 在 `configs/<task>.yaml` 的 `processing.embedding` 中可进行任务级覆盖，例如：
+
+```yaml
+processing:
+  embedding:
+    max_batch_tokens: 8192
+    max_item_chars: 6000
+    chars_per_token: 4.0
+```
+
+> 这些阈值用于防止将超大批量文本发送到 TEI 时触发 413 错误（Payload Too Large）。如需调高 `--max-batch-tokens`，请同步更新环境变量或任务配置。
+
 ### 任务配置
 在 `configs/` 目录下自定义任务配置：
 

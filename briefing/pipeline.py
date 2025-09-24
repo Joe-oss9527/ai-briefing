@@ -7,7 +7,7 @@ import datetime as dt
 import numpy as np
 import requests
 import fasttext
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from sklearn.metrics.pairwise import cosine_similarity
 import hdbscan
 from sentence_transformers import CrossEncoder
@@ -17,6 +17,33 @@ from briefing.utils import now_utc, get_logger, parse_datetime_safe
 TEI_ORIGIN = os.getenv("TEI_ORIGIN", "http://tei:3000")
 LID_MODEL_PATH = os.getenv("LID_MODEL_PATH", "/workspace/lid.176.bin")
 logger = get_logger(__name__)
+
+
+def _parse_env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("Invalid integer for %s=%s, using default %d", name, raw, default)
+        return default
+
+
+def _parse_env_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning("Invalid float for %s=%s, using default %.2f", name, raw, default)
+        return default
+
+
+EMBED_MAX_BATCH_TOKENS_DEFAULT = max(1, _parse_env_int("EMBED_MAX_BATCH_TOKENS", 8192))
+EMBED_MAX_ITEM_CHARS_DEFAULT = max(0, _parse_env_int("EMBED_MAX_ITEM_CHARS", 6000))
+EMBED_CHARS_PER_TOKEN_DEFAULT = max(0.1, _parse_env_float("EMBED_CHAR_PER_TOKEN", 4.0))
 
 def _normalize_text_encoding(text: str) -> str:
     """Normalize text encoding to ensure valid UTF-8."""
@@ -90,25 +117,91 @@ def _clean_text_for_embedding(text: str) -> str:
     text = _filter_control_chars(text)
     return text.strip()
 
-def _embed_texts(texts: List[str]) -> np.ndarray:
+def _embed_texts(
+    texts: List[str],
+    *,
+    max_batch_tokens: int,
+    max_item_chars: int,
+    chars_per_token: float,
+) -> np.ndarray:
     st = time.monotonic()
-    batch_size = 16  # Process texts in smaller batches
-    all_embs = []
-    
+    max_batch_tokens = max(1, max_batch_tokens)
+    chars_per_token = max(0.1, chars_per_token)
+
     # Clean all texts before processing
     cleaned_texts = [_clean_text_for_embedding(text) for text in texts]
     cleaned_count = sum(1 for orig, clean in zip(texts, cleaned_texts) if orig != clean)
     if cleaned_count > 0:
         logger.info("Cleaned %d texts for embedding processing", cleaned_count)
-    
-    for i in range(0, len(cleaned_texts), batch_size):
-        batch = cleaned_texts[i:i+batch_size]
-        
-        # Retry mechanism for TEI API calls
+
+    max_single_chars = max(1, int(max_batch_tokens * chars_per_token))
+    effective_char_limit = max_single_chars
+    if max_item_chars > 0:
+        effective_char_limit = min(max_item_chars, max_single_chars)
+
+    processed_texts: List[Tuple[int, str]] = []
+    truncated_count = 0
+    for idx, text in enumerate(cleaned_texts):
+        truncated = text
+        if len(truncated) > effective_char_limit:
+            truncated = truncated[:effective_char_limit]
+            truncated_count += 1
+        processed_texts.append((idx, truncated))
+
+    if truncated_count > 0:
+        logger.info(
+            "Truncated %d texts for embedding processing (char_limit=%d)",
+            truncated_count,
+            effective_char_limit,
+        )
+
+    def approx_tokens(payload: str) -> int:
+        return max(1, int(math.ceil(len(payload) / chars_per_token)))
+
+    batches: List[List[Tuple[int, str]]] = []
+    current_batch: List[Tuple[int, str]] = []
+    current_tokens = 0
+
+    for idx, text in processed_texts:
+        tokens = approx_tokens(text)
+
+        if tokens > max_batch_tokens:
+            allowed_chars = max(1, int(max_batch_tokens * chars_per_token))
+            if len(text) > allowed_chars:
+                logger.warning(
+                    "Text %d exceeded token limit after truncation; trimming to %d chars",
+                    idx,
+                    allowed_chars,
+                )
+                text = text[:allowed_chars]
+                tokens = approx_tokens(text)
+
+        if current_batch and current_tokens + tokens > max_batch_tokens:
+            batches.append(current_batch)
+            current_batch = []
+            current_tokens = 0
+
+        current_batch.append((idx, text))
+        current_tokens += tokens
+
+    if current_batch:
+        batches.append(current_batch)
+
+    all_embs: List[Optional[np.ndarray]] = [None] * len(texts)
+
+    for batch_idx, batch in enumerate(batches, start=1):
+        payload = [text for _, text in batch]
+        batch_token_estimate = sum(approx_tokens(text) for text in payload)
+        logger.debug(
+            "Embedding batch %d size=%d approx_tokens=%d", batch_idx, len(batch), batch_token_estimate
+        )
+
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                resp = requests.post(f"{TEI_ORIGIN}/embeddings", json={"input": batch}, timeout=60)
+                resp = requests.post(
+                    f"{TEI_ORIGIN}/embeddings", json={"input": payload}, timeout=60
+                )
                 resp.raise_for_status()
                 break
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
@@ -116,17 +209,28 @@ def _embed_texts(texts: List[str]) -> np.ndarray:
                     logger.error("TEI embedding failed after %d attempts: %s", max_retries, e)
                     raise
                 logger.warning("TEI embedding attempt %d failed, retrying: %s", attempt + 1, e)
-                time.sleep(2 ** attempt)  # Exponential backoff
-        
+                time.sleep(2 ** attempt)
+
         data = resp.json()
         if "data" in data:
             embs = [d["embedding"] for d in data["data"]]
         else:
             embs = data["embeddings"]
-        all_embs.extend(embs)
-    
+
+        for (original_idx, _), emb in zip(batch, embs):
+            all_embs[original_idx] = emb
+
+    missing = [idx for idx, emb in enumerate(all_embs) if emb is None]
+    if missing:
+        raise RuntimeError(f"Missing embeddings for indices: {missing}")
+
     arr = np.array(all_embs, dtype=np.float32)
-    logger.info("embed_texts count=%d took_ms=%d", len(texts), int((time.monotonic()-st)*1000))
+    logger.info(
+        "embed_texts count=%d batches=%d took_ms=%d",
+        len(texts),
+        len(batches),
+        int((time.monotonic() - st) * 1000),
+    )
     return arr
 
 def _near_duplicate_mask(embs: np.ndarray, threshold: float) -> List[bool]:
@@ -235,7 +339,17 @@ def run_processing_pipeline(raw_items: List[Dict[str, Any]], cfg: Dict[str, Any]
     # for tx in texts:
     #     lid.predict(tx.replace("\n", " ")[:1000])  # 标注语言（当前未做强过滤）
 
-    embs = _embed_texts(texts)
+    embedding_cfg = cfg.get("embedding", {})
+    max_batch_tokens = int(embedding_cfg.get("max_batch_tokens", EMBED_MAX_BATCH_TOKENS_DEFAULT))
+    max_item_chars = int(embedding_cfg.get("max_item_chars", EMBED_MAX_ITEM_CHARS_DEFAULT))
+    chars_per_token = float(embedding_cfg.get("chars_per_token", EMBED_CHARS_PER_TOKEN_DEFAULT))
+
+    embs = _embed_texts(
+        texts,
+        max_batch_tokens=max_batch_tokens,
+        max_item_chars=max_item_chars,
+        chars_per_token=chars_per_token,
+    )
 
     mask = _near_duplicate_mask(embs, cfg.get("sim_near_dup", 0.92))
     filtered2 = [x for x, m in zip(filtered, mask) if m]
