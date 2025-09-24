@@ -123,7 +123,8 @@ def write_output(human_md: str, json_obj: dict, out_cfg: dict):
     out_dir = out_cfg["dir"]
     formats = out_cfg["formats"]
     os.makedirs(out_dir, exist_ok=True)
-    ts = now_utc().strftime("%Y%m%dT%H%M%SZ")
+    now_local = dt.datetime.now().astimezone()
+    ts = now_local.strftime("%Y%m%dT%H%M%S%z")
     base = os.path.join(out_dir, f"briefing_{ts}")
     
     generated_files = []
