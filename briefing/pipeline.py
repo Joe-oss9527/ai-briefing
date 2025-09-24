@@ -4,6 +4,7 @@ import time
 import json
 import math
 import datetime as dt
+from collections import deque
 import numpy as np
 import requests
 import fasttext
@@ -139,14 +140,14 @@ def _embed_texts(
     if max_item_chars > 0:
         effective_char_limit = min(max_item_chars, max_single_chars)
 
-    processed_texts: List[Tuple[int, str]] = []
+    processed_texts: List[Tuple[int, str, bool]] = []
     truncated_count = 0
     for idx, text in enumerate(cleaned_texts):
         truncated = text
         if len(truncated) > effective_char_limit:
             truncated = truncated[:effective_char_limit]
             truncated_count += 1
-        processed_texts.append((idx, truncated))
+        processed_texts.append((idx, truncated, False))
 
     if truncated_count > 0:
         logger.info(
@@ -158,67 +159,136 @@ def _embed_texts(
     def approx_tokens(payload: str) -> int:
         return max(1, int(math.ceil(len(payload) / chars_per_token)))
 
-    batches: List[List[Tuple[int, str]]] = []
-    current_batch: List[Tuple[int, str]] = []
-    current_tokens = 0
-
-    for idx, text in processed_texts:
-        tokens = approx_tokens(text)
-
-        if tokens > max_batch_tokens:
-            allowed_chars = max(1, int(max_batch_tokens * chars_per_token))
-            if len(text) > allowed_chars:
-                logger.warning(
-                    "Text %d exceeded token limit after truncation; trimming to %d chars",
-                    idx,
-                    allowed_chars,
-                )
-                text = text[:allowed_chars]
-                tokens = approx_tokens(text)
-
-        if current_batch and current_tokens + tokens > max_batch_tokens:
-            batches.append(current_batch)
-            current_batch = []
-            current_tokens = 0
-
-        current_batch.append((idx, text))
-        current_tokens += tokens
-
-    if current_batch:
-        batches.append(current_batch)
-
+    queue: deque[Tuple[int, str, bool]] = deque(processed_texts)
     all_embs: List[Optional[np.ndarray]] = [None] * len(texts)
+    batches_sent = 0
 
-    for batch_idx, batch in enumerate(batches, start=1):
-        payload = [text for _, text in batch]
+    def enqueue_front(items: List[Tuple[int, str, bool]]) -> None:
+        for item in reversed(items):
+            queue.appendleft(item)
+
+    while queue:
+        batch: List[Tuple[int, str, bool]] = []
+        current_tokens = 0
+
+        while queue:
+            idx, text, force_single = queue[0]
+            tokens = approx_tokens(text)
+
+            if tokens > max_batch_tokens:
+                queue.popleft()
+                allowed_chars = max(1, int(max_batch_tokens * chars_per_token))
+                if len(text) <= allowed_chars:
+                    # already within hard bound yet tokens still exceed limit -> shrink aggressively
+                    new_length = max(1, len(text) // 2)
+                else:
+                    new_length = allowed_chars
+
+                if new_length == len(text):
+                    raise RuntimeError(
+                        f"Text {idx} cannot be reduced below TEI batch limit (len={len(text)})"
+                    )
+
+                logger.warning(
+                    "Text %d exceeded token limit, trimming to %d chars (was %d)",
+                    idx,
+                    new_length,
+                    len(text),
+                )
+                queue.appendleft((idx, text[:new_length], True))
+                continue
+
+            if batch and (current_tokens + tokens > max_batch_tokens or force_single):
+                break
+
+            queue.popleft()
+            batch.append((idx, text, force_single))
+            current_tokens += tokens
+            if force_single:
+                break
+
+        if not batch:
+            # No batch assembled; likely due to very small max_batch_tokens
+            continue
+
+        payload = [text for _, text, _ in batch]
         batch_token_estimate = sum(approx_tokens(text) for text in payload)
         logger.debug(
-            "Embedding batch %d size=%d approx_tokens=%d", batch_idx, len(batch), batch_token_estimate
+            "Embedding batch size=%d approx_tokens=%d", len(batch), batch_token_estimate
         )
 
         max_retries = 3
+        sent = False
+
         for attempt in range(max_retries):
             try:
                 resp = requests.post(
                     f"{TEI_ORIGIN}/embeddings", json={"input": payload}, timeout=60
                 )
-                resp.raise_for_status()
-                break
-            except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
+            except requests.exceptions.RequestException as exc:
                 if attempt == max_retries - 1:
-                    logger.error("TEI embedding failed after %d attempts: %s", max_retries, e)
+                    logger.error("TEI embedding failed after %d attempts: %s", max_retries, exc)
                     raise
-                logger.warning("TEI embedding attempt %d failed, retrying: %s", attempt + 1, e)
+                logger.warning("TEI embedding attempt %d failed, retrying: %s", attempt + 1, exc)
                 time.sleep(2 ** attempt)
+                continue
 
-        data = resp.json()
-        if "data" in data:
-            embs = [d["embedding"] for d in data["data"]]
-        else:
-            embs = data["embeddings"]
+            if resp.status_code == 413:
+                logger.warning(
+                    "TEI embedding 413 for batch size=%d approx_tokens=%d, reducing batch",
+                    len(batch),
+                    batch_token_estimate,
+                )
+                if len(batch) > 1:
+                    mid = max(1, len(batch) // 2)
+                    second_half = [(idx, text, True) for idx, text, _ in batch[mid:]]
+                    first_half = [(idx, text, True) for idx, text, _ in batch[:mid]]
+                    enqueue_front(second_half)
+                    enqueue_front(first_half)
+                else:
+                    idx, text, _ = batch[0]
+                    new_length = max(1, int(len(text) * 0.7))
+                    if new_length == len(text):
+                        new_length = max(1, len(text) - 1)
+                    if new_length <= 0:
+                        raise RuntimeError(f"Unable to shrink text {idx} below TEI limit")
+                    logger.warning(
+                        "Further trimming text %d to %d chars after 413 (was %d)",
+                        idx,
+                        new_length,
+                        len(text),
+                    )
+                    queue.appendleft((idx, text[:new_length], True))
+                time.sleep(1)
+                sent = False
+                break
 
-        for (original_idx, _), emb in zip(batch, embs):
-            all_embs[original_idx] = emb
+            try:
+                resp.raise_for_status()
+            except requests.exceptions.HTTPError as exc:
+                if attempt == max_retries - 1:
+                    logger.error("TEI embedding failed after %d attempts: %s", max_retries, exc)
+                    raise
+                logger.warning("TEI embedding attempt %d failed, retrying: %s", attempt + 1, exc)
+                time.sleep(2 ** attempt)
+                continue
+
+            data = resp.json()
+            if "data" in data:
+                embs = [d["embedding"] for d in data["data"]]
+            else:
+                embs = data["embeddings"]
+
+            for (original_idx, _, _), emb in zip(batch, embs):
+                all_embs[original_idx] = emb
+
+            batches_sent += 1
+            sent = True
+            break
+
+        if not sent:
+            # batch was re-queued due to 413; continue outer loop
+            continue
 
     missing = [idx for idx, emb in enumerate(all_embs) if emb is None]
     if missing:
@@ -228,7 +298,7 @@ def _embed_texts(
     logger.info(
         "embed_texts count=%d batches=%d took_ms=%d",
         len(texts),
-        len(batches),
+        batches_sent,
         int((time.monotonic() - st) * 1000),
     )
     return arr
